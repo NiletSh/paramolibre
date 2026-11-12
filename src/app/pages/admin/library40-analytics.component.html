@@ -1,0 +1,136 @@
+<section class="lib40">
+  <header class="lib40-hero">
+    <div>
+      <span class="eyebrow">Biblioteca inteligente 4.0</span>
+      <h1>Gemelo digital y comprensión</h1>
+      <p>El estante físico, su copia en la plataforma y cómo están leyendo quienes ya devolvieron un libro.</p>
+    </div>
+    <a routerLink="/admin" class="back-link">Volver a actividad</a>
+  </header>
+
+  <p class="demo-chip" *ngIf="usingFallback">
+    Datos de demostración. Aparecen mientras el acervo real todavía no tiene slots ni sesiones de lectura.
+  </p>
+  <p class="demo-chip live" *ngIf="!usingFallback && !loading">Cifras leídas de la base de este estante.</p>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Monitor del gemelo digital</h2>
+      <p>Cada celda es un espacio del estante. El aviso rojo marca un libro fuera más de {{ overview.overdue_days }} días.</p>
+    </div>
+
+    <div class="modules">
+      <section class="module" *ngFor="let moduleName of modules">
+        <h3>Módulo {{ moduleName }}</h3>
+        <div class="slot-grid">
+          <article
+            class="slot"
+            *ngFor="let cell of slotsFor(moduleName)"
+            [class.slot-empty]="cell.presence === 'empty'"
+            [class.slot-away]="cell.presence === 'away'"
+            [class.slot-alert]="cell.alert === 'overdue'"
+            [class.slot-repair]="cell.book?.physical_condition === 'REPARACION'">
+            <header>
+              <span>{{ cell.slot }}</span>
+              <strong [class.badge-alert]="cell.alert === 'overdue'">{{ presenceLabel(cell) }}</strong>
+            </header>
+            <ng-container *ngIf="cell.book; else emptySlot">
+              <h4>{{ cell.book.title }}</h4>
+              <p>{{ cell.book.author }}</p>
+              <ul>
+                <li>{{ conditionLabel(cell.book.physical_condition) }}</li>
+                <li>{{ lexicalLabel(cell.book.lexical_complexity) }}</li>
+                <li>{{ cell.book.category }}</li>
+              </ul>
+            </ng-container>
+            <ng-template #emptySlot>
+              <h4>Espacio libre</h4>
+              <p>Listo para el siguiente libro.</p>
+            </ng-template>
+          </article>
+        </div>
+      </section>
+    </div>
+
+    <div class="unslotted" *ngIf="overview.unslotted?.length">
+      <h3>Fuera de la cuadrícula</h3>
+      <article *ngFor="let cell of overview.unslotted" [class.slot-alert]="cell.alert === 'overdue'">
+        <strong>{{ cell.book?.title }}</strong>
+        <span>{{ cell.slot }} · {{ presenceLabel(cell) }}</span>
+      </article>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Analítica de comprensión lectora</h2>
+      <p>Terminado es un libro devuelto. Abandonado es una sesión omitida o un préstamo abierto más de 21 días.</p>
+    </div>
+
+    <div class="kpis">
+      <article>
+        <span>Terminados</span>
+        <strong>{{ overview.kpis.finished_rate }}%</strong>
+        <small>{{ overview.kpis.finished_count }} libros devueltos</small>
+      </article>
+      <article>
+        <span>Abandonados</span>
+        <strong>{{ overview.kpis.abandoned_rate }}%</strong>
+        <small>{{ overview.kpis.abandoned_count }} sin cierre</small>
+      </article>
+      <article>
+        <span>Tiempo promedio de lectura</span>
+        <strong>{{ formatMinutes(overview.kpis.avg_reading_minutes) }}</strong>
+        <small>{{ overview.kpis.in_progress_count }} siguen en curso</small>
+      </article>
+    </div>
+
+    <div class="split" aria-hidden="true">
+      <span class="split-done" [style.width.%]="overview.kpis.finished_rate"></span>
+      <span class="split-left" [style.width.%]="overview.kpis.abandoned_rate"></span>
+    </div>
+    <p class="split-caption"><i></i> Terminados <b></b> Abandonados</p>
+
+    <h3 class="subhead">Nivel promedio por categoría</h3>
+    <ul class="bars" *ngIf="overview.kpis.comprehension_by_category.length; else noCategories">
+      <li *ngFor="let row of overview.kpis.comprehension_by_category">
+        <div>
+          <strong>{{ row.category }}</strong>
+          <span>{{ row.sessions }} sesiones</span>
+        </div>
+        <div class="bar" aria-hidden="true"><span [style.width.%]="row.average_score"></span></div>
+        <em>{{ row.average_score }}</em>
+      </li>
+    </ul>
+    <ng-template #noCategories>
+      <p class="empty">Todavía no hay sesiones validadas por categoría.</p>
+    </ng-template>
+
+    <h3 class="subhead">Retroalimentación reciente, sin nombre</h3>
+    <div class="table-wrap" *ngIf="overview.qualitative.length; else noNotes">
+      <table>
+        <thead>
+          <tr>
+            <th>Cuándo</th>
+            <th>Categoría</th>
+            <th>Lectura</th>
+            <th>Puntos</th>
+            <th>Qué se entendió</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let note of overview.qualitative">
+            <td>{{ formatWhen(note.when) }}</td>
+            <td>{{ note.category }}</td>
+            <td>{{ note.score }}</td>
+            <td>{{ note.points }}</td>
+            <td>{{ note.summary }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <ng-template #noNotes>
+      <p class="empty">Cuando alguien cierre la conversación con el compañero de lectura, el resumen aparecerá aquí, sin identificar al lector.</p>
+    </ng-template>
+  </section>
+</section>

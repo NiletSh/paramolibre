@@ -1,0 +1,232 @@
+import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { MatIconModule } from '@angular/material/icon';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { BookService } from '../../services/book';
+import { AuthService } from '../../core/services/auth.service';
+import { Book, SHELF_INSTRUCTIONS, SHELF_LOCATION } from '../../models/book';
+
+interface BookDetail {
+  id: string | number;
+  ownerId?: string;
+  title: string;
+  author: string;
+  description: string;
+  category: string;
+  condition: 'new' | 'like_new' | 'good' | 'fair';
+  location: string;
+  owner: string;
+  ownerAvatar?: string;
+  status: 'available' | 'exchanged' | 'reserved';
+  publishedDate: string;
+  imageColor: string;
+  imageUrl: string;
+}
+
+@Component({
+  selector: 'app-book-detail',
+  standalone: true,
+  imports: [CommonModule, FormsModule, RouterLink, MatIconModule, MatSnackBarModule],
+  templateUrl: './book-detail.component.html',
+  styleUrl: './book-detail.component.scss'
+})
+export class BookDetailComponent implements OnInit {
+  readonly shelfLocation = SHELF_LOCATION;
+  readonly shelfInstructions = SHELF_INSTRUCTIONS;
+
+  book: BookDetail | null = null;
+  notFound = false;
+  isLoggedIn = false;
+  canEditBook = false;
+  isOwnBook = false;
+  cardUid = '';
+  linkedUid = '';
+  cardLinked = false;
+  savingCard = false;
+
+  conditionLabels: Record<string, string> = {
+    new: 'Nuevo',
+    like_new: 'Como nuevo',
+    good: 'Bueno',
+    fair: 'Aceptable'
+  };
+
+  conditionColors: Record<string, string> = {
+    new: '#2d6a4f',
+    like_new: '#0d7377',
+    good: '#e76f51',
+    fair: '#868e96'
+  };
+
+  statusLabels: Record<string, string> = {
+    available: 'Disponible para trueque',
+    exchanged: 'Ya fue intercambiado',
+    reserved: 'Reservado temporalmente'
+  };
+
+  statusColors: Record<string, string> = {
+    available: '#2d6a4f',
+    exchanged: '#868e96',
+    reserved: '#e76f51'
+  };
+
+  constructor(
+    private route: ActivatedRoute,
+    private router: Router,
+    private bookService: BookService,
+    private authService: AuthService,
+    private snackBar: MatSnackBar
+  ) {}
+
+  ngOnInit(): void {
+    this.authService.isAuthenticated$.subscribe((status) => {
+      this.isLoggedIn = status;
+    });
+
+    const idParam = this.route.snapshot.paramMap.get('id');
+    if (!idParam) {
+      this.notFound = true;
+      return;
+    }
+
+    this.bookService.getBookById(idParam).subscribe({
+      next: (book) => {
+        if (!book) {
+          this.notFound = true;
+          return;
+        }
+
+        this.book = this.toBookDetail(book);
+        this.canEditBook = this.canEdit(this.book);
+        this.isOwnBook = this.ownsBook(this.book);
+        const savedUid = book.rfidUid || this.rememberedCard(book.id);
+        if (savedUid) {
+          this.linkedUid = savedUid;
+          this.cardLinked = true;
+          this.rememberCard(book.id, savedUid);
+        }
+        this.notFound = false;
+      },
+      error: () => {
+        this.notFound = true;
+      }
+    });
+  }
+
+  hideCover(): void {
+    if (this.book) {
+      this.book.imageUrl = '';
+    }
+  }
+
+  goBack(): void {
+    this.router.navigate(['/catalogo']);
+  }
+
+  goToLogin(): void {
+    this.router.navigate(['/auth/login'], {
+      queryParams: {
+        returnUrl: `intercambio/${this.book?.id}`,
+        reason: 'Debes iniciar sesión para proponer un trueque.'
+      }
+    });
+  }
+
+  private toBookDetail(book: Book): BookDetail {
+    return {
+      id: book.id || '',
+      ownerId: book.ownerId,
+      title: book.title,
+      author: book.author,
+      description: book.description,
+      category: book.category,
+      condition: book.condition,
+      location: SHELF_LOCATION,
+      owner: book.ownerName || 'Usuario',
+      status: book.status || 'available',
+      publishedDate: this.formatDate(book.createdAt),
+      imageColor: '#0d7377',
+      imageUrl: book.imageUrl || 'assets/images/hero-books.svg'
+    };
+  }
+
+  saveCard(): void {
+    if (!this.book || this.savingCard) return;
+    const uid = this.cardUid.trim();
+    if (uid.length < 4) {
+      this.snackBar.open('Escribe el UID de la tarjeta, por ejemplo 2A34651A.', 'Cerrar', {
+        duration: 5000,
+        panelClass: ['snackbar-warning']
+      });
+      return;
+    }
+    this.savingCard = true;
+    this.bookService.linkShelfCard(this.book.id, uid).subscribe({
+      next: (linked) => {
+        this.savingCard = false;
+        this.linkedUid = linked?.uid || uid;
+        this.cardUid = '';
+        this.cardLinked = true;
+        if (this.book) this.rememberCard(this.book.id, this.linkedUid);
+        this.snackBar.open('Tarjeta vinculada. El estante ya puede reconocer este libro.', 'Cerrar', {
+          duration: 5000,
+          panelClass: ['snackbar-success']
+        });
+      },
+      error: (error) => {
+        this.savingCard = false;
+        const message = error?.error?.message || 'No se pudo vincular la tarjeta.';
+        this.snackBar.open(message, 'Cerrar', {
+          duration: 5000,
+          panelClass: ['snackbar-error']
+        });
+      }
+    });
+  }
+
+  private cardKey(id: string | number | undefined): string {
+    return `pl_rfid_${id}`;
+  }
+
+  private rememberCard(id: string | number | undefined, uid: string): void {
+    const clean = (uid || '').replace(/[^0-9a-f]/gi, '').toUpperCase();
+    if (id == null || id === '' || !clean) return;
+    localStorage.setItem(this.cardKey(id), clean);
+  }
+
+  private rememberedCard(id: string | number | undefined): string {
+    if (id == null || id === '') return '';
+    return localStorage.getItem(this.cardKey(id)) || '';
+  }
+
+  formatUid(uid: string): string {
+    const clean = (uid || '').replace(/[^0-9a-f]/gi, '').toUpperCase();
+    return clean.replace(/(.{2})/g, '$1 ').trim();
+  }
+
+  private formatDate(value?: string): string {
+    if (!value) return 'Fecha no disponible';
+
+    return new Date(value).toLocaleDateString('es-ES', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
+  }
+
+  private canEdit(book: BookDetail): boolean {
+    const user = this.authService.getCurrentUser();
+    return !!user && (this.sameUser(book.ownerId, user.id) || user.rol === 'admin');
+  }
+
+  private ownsBook(book: BookDetail): boolean {
+    const user = this.authService.getCurrentUser();
+    return !!user && this.sameUser(book.ownerId, user.id);
+  }
+
+  private sameUser(ownerId: string | undefined, userId: number): boolean {
+    return ownerId != null && ownerId !== '' && Number(ownerId) === Number(userId);
+  }
+}

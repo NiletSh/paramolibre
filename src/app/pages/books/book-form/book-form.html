@@ -1,0 +1,138 @@
+<div class="book-form-page">
+  <div class="form-card">
+    
+    <!-- Header compacto -->
+    <div class="form-header">
+      <button type="button" class="btn-back" routerLink="/catalogo">
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+      <div class="header-title">
+        <h1>{{ isEditMode ? 'Editar libro' : 'Publicar libro' }}</h1>
+        <span>{{ isEditMode ? 'Actualiza la informacion guardada en tu publicacion' : 'Comparte un libro disponible para trueque' }}</span>
+      </div>
+      <div class="header-spacer"></div>
+    </div>
+
+    <!-- Cuerpo en dos columnas -->
+    <form class="publish-form" [formGroup]="bookForm" (ngSubmit)="onSubmit()" novalidate>
+    <div class="form-body">
+        <div class="form-grid">
+          
+          <!-- COLUMNA IZQUIERDA: Imagen -->
+          <div class="col-image">
+            <label class="field-label">Portada</label>
+            <div
+              class="image-zone"
+              [class.drag-active]="isDragOver"
+              (drop)="onDrop($event)"
+              (dragover)="onDragOver($event)"
+              (dragleave)="onDragLeave($event)"
+            >
+              <input
+                #fileInput
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                class="d-none"
+                (change)="onFileSelected($event)"
+              >
+
+              <ng-container *ngIf="!imagePreview; else previewTpl">
+                <div class="upload-content" (click)="fileInput.click()">
+                  <div class="upload-circle">
+                    <mat-icon>add_photo_alternate</mat-icon>
+                  </div>
+                  <p class="upload-text">Arrastra o haz clic</p>
+                  <span class="upload-meta">JPG, PNG · Máx. 5MB</span>
+                </div>
+              </ng-container>
+
+              <ng-template #previewTpl>
+                <div class="preview-box">
+                  <img [src]="imagePreview" alt="Portada">
+                  <button type="button" class="btn-remove" (click)="removeImage($event)">
+                    <mat-icon>close</mat-icon>
+                  </button>
+                </div>
+              </ng-template>
+            </div>
+          </div>
+
+          <!-- COLUMNA DERECHA: Campos -->
+          <div class="col-fields">
+            <div class="fields-row">
+              <div class="field-block">
+                <label class="input-label" for="book-title">Título</label>
+                <mat-form-field appearance="outline" class="field-grow">
+                  <input id="book-title" matInput formControlName="title" placeholder="Ej. Cien años de soledad">
+                  <mat-error *ngIf="bookForm.get('title')?.invalid">Título inválido</mat-error>
+                </mat-form-field>
+              </div>
+
+              <div class="field-block">
+                <label class="input-label" for="book-author">Autor</label>
+                <mat-form-field appearance="outline" class="field-grow">
+                  <input id="book-author" matInput formControlName="author" placeholder="Ej. Gabriel García Márquez">
+                  <mat-error *ngIf="bookForm.get('author')?.invalid">Autor inválido</mat-error>
+                </mat-form-field>
+              </div>
+            </div>
+
+            <div class="fields-row">
+              <div class="field-block">
+                <label class="input-label">Categoría</label>
+                <mat-form-field appearance="outline" class="field-grow">
+                  <mat-select formControlName="category" placeholder="Elige una categoría">
+                    <mat-option *ngFor="let cat of categories" [value]="cat">{{ cat }}</mat-option>
+                  </mat-select>
+                  <mat-error *ngIf="bookForm.get('category')?.invalid">Requerido</mat-error>
+                </mat-form-field>
+              </div>
+
+              <div class="field-block">
+                <label class="input-label">Estado</label>
+                <mat-form-field appearance="outline" class="field-grow">
+                  <mat-select formControlName="condition" placeholder="Elige el estado">
+                    <mat-option *ngFor="let cond of conditions" [value]="cond.value">{{ cond.label }}</mat-option>
+                  </mat-select>
+                  <mat-error *ngIf="bookForm.get('condition')?.invalid">Requerido</mat-error>
+                </mat-form-field>
+              </div>
+            </div>
+
+            <div class="shelf-note">
+              <mat-icon>inventory_2</mat-icon>
+              <div>
+                <strong>Entrega en el estante</strong>
+                <span>Todos los libros se intercambian en <em>{{ shelfLocation }}</em>.</span>
+              </div>
+            </div>
+
+            <label class="input-label" for="book-description">Descripción</label>
+            <mat-form-field appearance="outline" class="w-100 textarea-field">
+              <textarea id="book-description" matInput formControlName="description" rows="2" placeholder="Describe el libro, su estado, edición y qué tipo de trueque buscas..."></textarea>
+              <mat-hint align="end" class="hint-count">{{ (bookForm.get('description')?.value || '').length }}/1000</mat-hint>
+              <mat-error *ngIf="bookForm.get('description')?.invalid">Mínimo 20 caracteres</mat-error>
+            </mat-form-field>
+
+            <div class="trade-note">
+              <mat-icon>info</mat-icon>
+              <div>
+                <strong>Trueque seguro</strong>
+                <span>Publica solo libros disponibles para intercambio. Tras aceptar un trueque, llévalos al estante comunitario.</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+    </div>
+
+        <div class="actions">
+          <button type="submit" mat-flat-button class="btn-publish" [disabled]="bookForm.invalid">
+            <mat-icon>{{ isEditMode ? 'save' : 'post_add' }}</mat-icon>
+            {{ isEditMode ? 'Guardar cambios' : 'Publicar libro' }}
+          </button>
+        </div>
+    </form>
+
+  </div>
+</div>

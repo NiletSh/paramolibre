@@ -1,0 +1,939 @@
+const bcrypt = require('bcryptjs');
+const pool = require('../config/db');
+const { generarToken } = require('../utils/jwt');
+const Notification = require('../services/notification.service');
+
+const isDevelopment = (process.env.NODE_ENV || 'development') === 'development';
+const MAX_LOGIN_ATTEMPTS = isDevelopment ? 20 : 5;
+const LOGIN_WINDOW_MS = (isDevelopment ? 1 : 15) * 60 * 1000;
+const LOGIN_WINDOW_MINUTES = Math.ceil(LOGIN_WINDOW_MS / 60000);
+const loginAttempts = new Map();
+
+// Helper para eliminar password de la respuesta
+const usuarioSinPassword = (usuario) => {
+  const { password_hash, ...resto } = usuario;
+  return resto;
+};
+
+const normalizeEmail = (email = '') => email.trim().toLowerCase();
+const buildUploadUrl = (path = '') => path || null;
+
+const statusFromDb = {
+  pendiente: 'pending',
+  aceptado: 'accepted',
+  rechazado: 'rejected',
+  cancelado: 'cancelled',
+  completado: 'completed'
+};
+
+const bookStatusFromDb = {
+  disponible: 'available',
+  en_intercambio: 'reserved',
+  intercambiado: 'exchanged',
+  pausado: 'reserved'
+};
+
+const formatRelativeTime = (dateValue) => {
+  if (!dateValue) return '';
+
+  const diffMs = Date.now() - new Date(dateValue).getTime();
+  const minutes = Math.max(1, Math.floor(diffMs / 60000));
+  if (minutes < 60) return `Hace ${minutes} min`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `Hace ${hours} h`;
+
+  const days = Math.floor(hours / 24);
+  if (days === 1) return 'Ayer';
+  if (days < 30) return `Hace ${days} dias`;
+
+  const months = Math.floor(days / 30);
+  return `Hace ${months} mes${months === 1 ? '' : 'es'}`;
+};
+
+const getLoginKey = (req, email) => `${req.ip || req.socket.remoteAddress || 'local'}:${normalizeEmail(email)}`;
+
+const isLoginBlocked = (key) => {
+  const attempt = loginAttempts.get(key);
+  if (!attempt) return false;
+
+  if (Date.now() > attempt.expiresAt) {
+    loginAttempts.delete(key);
+    return false;
+  }
+
+  return attempt.count >= MAX_LOGIN_ATTEMPTS;
+};
+
+const registerFailedLogin = (key) => {
+  const current = loginAttempts.get(key);
+  const expiresAt = Date.now() + LOGIN_WINDOW_MS;
+
+  loginAttempts.set(key, {
+    count: current && Date.now() <= current.expiresAt ? current.count + 1 : 1,
+    expiresAt
+  });
+};
+
+const usuarioController = {
+  // REGISTRO
+  registrar: async (req, res) => {
+    try {
+      const { nombre, password, ubicacion, telefono } = req.body;
+      const email = normalizeEmail(req.body.email);
+
+      if (!nombre || !email || !password) {
+        return res.status(400).json({
+          exito: false,
+          mensaje: 'Nombre, email y contraseña son obligatorios.'
+        });
+      }
+
+      if (password.length < 8) {
+        return res.status(400).json({
+          exito: false,
+          mensaje: 'La contraseña debe tener al menos 8 caracteres.'
+        });
+      }
+
+      // Verificar si el email ya existe
+      const [existente] = await pool.execute(
+        'SELECT id FROM usuarios WHERE email = ?',
+        [email]
+      );
+
+      if (existente.length > 0) {
+        return res.status(409).json({
+          exito: false,
+          mensaje: 'Ya existe una cuenta con este correo electrónico.'
+        });
+      }
+
+      // Hashear contraseña
+      const salt = await bcrypt.genSalt(10);
+      const password_hash = await bcrypt.hash(password, salt);
+
+      // Insertar usuario
+      const [resultado] = await pool.execute(
+        `INSERT INTO usuarios (nombre, email, password_hash, ubicacion, telefono) 
+         VALUES (?, ?, ?, ?, ?)`,
+        [nombre, email, password_hash, ubicacion || null, telefono || null]
+      );
+
+      let nuevoId = Number(resultado.insertId);
+      if (!nuevoId) {
+        const [creado] = await pool.execute(
+          'SELECT id FROM usuarios WHERE email = ?',
+          [email]
+        );
+        nuevoId = Number(creado[0]?.id);
+      }
+
+      const [usuarios] = await pool.execute(
+        'SELECT * FROM usuarios WHERE id = ?',
+        [nuevoId]
+      );
+
+      const usuario = usuarios[0];
+      if (!usuario) {
+        throw new Error('El usuario se insertó pero no se pudo leer');
+      }
+      const token = generarToken({
+        id: Number(usuario.id),
+        email: usuario.email,
+        rol: usuario.rol
+      });
+
+      res.status(201).json({
+        exito: true,
+        mensaje: 'Usuario registrado exitosamente.',
+        token,
+        usuario: usuarioSinPassword(usuario)
+      });
+    } catch (error) {
+      console.error('Error en registrar:', error);
+      res.status(500).json({
+        exito: false,
+        mensaje: 'Error al registrar el usuario.',
+        error: error.message
+      });
+    }
+  },
+
+  // LOGIN
+  login: async (req, res) => {
+    try {
+      const email = normalizeEmail(req.body.email);
+      const { password } = req.body;
+      const loginKey = getLoginKey(req, email);
+
+      if (!email || !password) {
+        return res.status(400).json({
+          exito: false,
+          mensaje: 'Email y contraseña son obligatorios.'
+        });
+      }
+
+      if (isLoginBlocked(loginKey)) {
+        return res.status(429).json({
+          exito: false,
+          mensaje: `Demasiados intentos. Espera ${LOGIN_WINDOW_MINUTES} minuto${LOGIN_WINDOW_MINUTES === 1 ? '' : 's'} antes de volver a intentar.`
+        });
+      }
+
+      const [usuarios] = await pool.execute(
+        'SELECT * FROM usuarios WHERE email = ? AND activo = TRUE',
+        [email]
+      );
+
+      if (usuarios.length === 0) {
+        registerFailedLogin(loginKey);
+        return res.status(401).json({
+          exito: false,
+          mensaje: 'Credenciales inválidas.'
+        });
+      }
+
+      const usuario = usuarios[0];
+      const passwordValido = await bcrypt.compare(password, usuario.password_hash);
+
+      if (!passwordValido) {
+        registerFailedLogin(loginKey);
+        return res.status(401).json({
+          exito: false,
+          mensaje: 'Credenciales inválidas.'
+        });
+      }
+
+      // Actualizar última conexión
+      await pool.execute(
+        'UPDATE usuarios SET ultima_conexion = NOW() WHERE id = ?',
+        [usuario.id]
+      );
+
+      loginAttempts.delete(loginKey);
+
+      const token = generarToken({ id: usuario.id, email: usuario.email, rol: usuario.rol });
+
+      res.json({
+        exito: true,
+        mensaje: 'Inicio de sesión exitoso.',
+        token,
+        usuario: usuarioSinPassword(usuario)
+      });
+    } catch (error) {
+      console.error('Error en login:', error);
+      res.status(500).json({
+        exito: false,
+        mensaje: 'Error al iniciar sesión.',
+        error: error.message
+      });
+    }
+  },
+
+  // OBTENER PERFIL PROPIO
+  obtenerPerfil: async (req, res) => {
+    try {
+      const [usuarios] = await pool.execute(
+        `SELECT u.id, u.nombre, u.email, u.foto_perfil, u.biografia, 
+                u.ubicacion, u.telefono, u.rol, u.fecha_registro, u.ultima_conexion,
+                c.notificaciones_email, c.tema, c.privacidad_perfil, c.idioma,
+                (SELECT COUNT(*) FROM libros l WHERE l.usuario_id = u.id AND l.activo = TRUE) AS libros_publicados,
+                (SELECT COUNT(*) FROM intercambios i WHERE (i.solicitante_id = u.id OR i.receptor_id = u.id) AND i.estado = 'completado' AND i.activo = TRUE) AS intercambios_completados
+         FROM usuarios u
+         LEFT JOIN configuraciones_usuario c ON u.id = c.usuario_id
+         WHERE u.id = ? AND u.activo = TRUE`,
+        [req.usuario.id]
+      );
+
+      if (usuarios.length === 0) {
+        return res.status(404).json({
+          exito: false,
+          mensaje: 'Usuario no encontrado.'
+        });
+      }
+
+      res.json({
+        exito: true,
+        usuario: usuarios[0]
+      });
+    } catch (error) {
+      console.error('Error en obtenerPerfil:', error);
+      res.status(500).json({
+        exito: false,
+        mensaje: 'Error al obtener el perfil.'
+      });
+    }
+  },
+
+  // ACTUALIZAR PERFIL
+  actualizarPerfil: async (req, res) => {
+    try {
+      const { nombre, biografia, ubicacion, telefono } = req.body;
+      const email = req.body.email ? normalizeEmail(req.body.email) : null;
+      const usuarioId = req.usuario.id;
+
+      if (!nombre || !email) {
+        return res.status(400).json({
+          exito: false,
+          mensaje: 'Nombre y email son obligatorios.'
+        });
+      }
+
+      const [emailExistente] = await pool.execute(
+        'SELECT id FROM usuarios WHERE email = ? AND id <> ? AND activo = TRUE',
+        [email, usuarioId]
+      );
+
+      if (emailExistente.length > 0) {
+        return res.status(409).json({
+          exito: false,
+          mensaje: 'Ya existe una cuenta con este correo electronico.'
+        });
+      }
+
+      await pool.execute(
+        `UPDATE usuarios 
+         SET nombre = ?, email = ?, biografia = ?, ubicacion = ?, telefono = ?
+         WHERE id = ?`,
+        [
+          nombre,
+          email,
+          biografia || null,
+          ubicacion || null,
+          telefono || null,
+          usuarioId
+        ]
+      );
+
+      const [usuarios] = await pool.execute(
+        'SELECT id, nombre, email, foto_perfil, biografia, ubicacion, telefono, rol FROM usuarios WHERE id = ?',
+        [usuarioId]
+      );
+
+      res.json({
+        exito: true,
+        mensaje: 'Perfil actualizado exitosamente.',
+        usuario: usuarios[0]
+      });
+    } catch (error) {
+      console.error('Error en actualizarPerfil:', error);
+      res.status(500).json({
+        exito: false,
+        mensaje: 'Error al actualizar el perfil.'
+      });
+    }
+  },
+
+  // CAMBIAR CONTRASEÑA
+  cambiarPassword: async (req, res) => {
+    try {
+      const { passwordActual, passwordNuevo } = req.body;
+      const usuarioId = req.usuario.id;
+
+      if (!passwordActual || !passwordNuevo) {
+        return res.status(400).json({
+          exito: false,
+          mensaje: 'Debes proporcionar la contraseña actual y la nueva.'
+        });
+      }
+
+      if (passwordNuevo.length < 8) {
+        return res.status(400).json({
+          exito: false,
+          mensaje: 'La nueva contraseña debe tener al menos 8 caracteres.'
+        });
+      }
+
+      const [usuarios] = await pool.execute(
+        'SELECT password_hash FROM usuarios WHERE id = ?',
+        [usuarioId]
+      );
+
+      const passwordValido = await bcrypt.compare(passwordActual, usuarios[0].password_hash);
+
+      if (!passwordValido) {
+        return res.status(401).json({
+          exito: false,
+          mensaje: 'La contraseña actual es incorrecta.'
+        });
+      }
+
+      const salt = await bcrypt.genSalt(10);
+      const nuevoHash = await bcrypt.hash(passwordNuevo, salt);
+
+      await pool.execute(
+        'UPDATE usuarios SET password_hash = ? WHERE id = ?',
+        [nuevoHash, usuarioId]
+      );
+
+      res.json({
+        exito: true,
+        mensaje: 'Contraseña actualizada exitosamente.'
+      });
+    } catch (error) {
+      console.error('Error en cambiarPassword:', error);
+      res.status(500).json({
+        exito: false,
+        mensaje: 'Error al cambiar la contraseña.'
+      });
+    }
+  },
+
+  obtenerFotoPerfil: async (req, res) => {
+    try {
+      const usuarioId = Number(req.params.id);
+      if (!Number.isInteger(usuarioId) || usuarioId <= 0) {
+        return res.status(404).json({ exito: false, mensaje: 'Foto no encontrada.' });
+      }
+
+      const [fotos] = await pool.execute(
+        'SELECT mime, datos FROM fotos_perfil WHERE usuario_id = ?',
+        [usuarioId]
+      );
+
+      if (fotos.length === 0 || !fotos[0].datos) {
+        return res.status(404).json({ exito: false, mensaje: 'Foto no encontrada.' });
+      }
+
+      const imagen = Buffer.isBuffer(fotos[0].datos) ? fotos[0].datos : Buffer.from(fotos[0].datos);
+      res.set('Content-Type', fotos[0].mime || 'image/jpeg');
+      res.set('Cache-Control', 'public, max-age=31536000');
+      res.send(imagen);
+    } catch (error) {
+      console.error('Error en obtenerFotoPerfil:', error);
+      res.status(500).json({
+        exito: false,
+        mensaje: 'Error al obtener la foto de perfil.'
+      });
+    }
+  },
+
+  // SUBIR FOTO DE PERFIL
+  subirFotoPerfil: async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({
+          exito: false,
+          mensaje: 'No se proporcionó ninguna imagen.'
+        });
+      }
+
+      const usuarioId = req.usuario.id;
+      const mime = req.file.mimetype;
+      const datos = req.file.buffer;
+      const [existente] = await pool.execute(
+        'SELECT usuario_id FROM fotos_perfil WHERE usuario_id = ?',
+        [usuarioId]
+      );
+
+      if (existente.length > 0) {
+        await pool.execute(
+          'UPDATE fotos_perfil SET mime = ?, datos = ? WHERE usuario_id = ?',
+          [mime, datos, usuarioId]
+        );
+      } else {
+        await pool.execute(
+          'INSERT INTO fotos_perfil (usuario_id, mime, datos) VALUES (?, ?, ?)',
+          [usuarioId, mime, datos]
+        );
+      }
+
+      const fotoUrl = `/api/users/${usuarioId}/photo?v=${Date.now()}`;
+
+      await pool.execute(
+        'UPDATE usuarios SET foto_perfil = ? WHERE id = ?',
+        [fotoUrl, usuarioId]
+      );
+
+      res.json({
+        exito: true,
+        mensaje: 'Foto de perfil actualizada exitosamente.',
+        foto_perfil: fotoUrl
+      });
+    } catch (error) {
+      console.error('Error en subirFotoPerfil:', error);
+      res.status(500).json({
+        exito: false,
+        mensaje: 'Error al subir la foto de perfil.'
+      });
+    }
+  },
+
+  obtenerDashboard: async (req, res) => {
+    try {
+      const usuarioId = req.usuario.id;
+
+      const [statsRows] = await pool.execute(
+        `SELECT
+          SUM(CASE WHEN solicitante_id = ? THEN 1 ELSE 0 END) AS propuestas_enviadas,
+          SUM(CASE WHEN receptor_id = ? THEN 1 ELSE 0 END) AS solicitudes_recibidas,
+          SUM(CASE WHEN (solicitante_id = ? OR receptor_id = ?) AND estado = 'completado' THEN 1 ELSE 0 END) AS trueques_realizados
+         FROM intercambios
+         WHERE activo = TRUE`,
+        [usuarioId, usuarioId, usuarioId, usuarioId]
+      );
+
+      const [bookCountRows] = await pool.execute(
+        `SELECT COUNT(*) AS libros_publicados
+         FROM libros
+         WHERE usuario_id = ? AND activo = TRUE`,
+        [usuarioId]
+      );
+
+      const [booksRows] = await pool.execute(
+        `SELECT id, titulo, autor, estado_publicacion, imagen_portada
+         FROM libros
+         WHERE usuario_id = ? AND activo = TRUE
+         ORDER BY fecha_publicacion DESC
+         LIMIT 3`,
+        [usuarioId]
+      );
+
+      const [activityRows] = await pool.execute(
+        `SELECT i.id, i.estado, i.fecha_propuesta, i.fecha_respuesta, i.fecha_completado,
+                i.solicitante_id, i.receptor_id,
+                ls.titulo AS libro_solicitado,
+                lo.titulo AS libro_ofrecido,
+                us.nombre AS solicitante_nombre,
+                ur.nombre AS receptor_nombre
+         FROM intercambios i
+         JOIN libros ls ON i.libro_solicitado_id = ls.id
+         JOIN libros lo ON i.libro_ofrecido_id = lo.id
+         JOIN usuarios us ON i.solicitante_id = us.id
+         JOIN usuarios ur ON i.receptor_id = ur.id
+         WHERE i.activo = TRUE AND (i.solicitante_id = ? OR i.receptor_id = ?)
+         ORDER BY COALESCE(i.fecha_completado, i.fecha_respuesta, i.fecha_propuesta) DESC
+         LIMIT 5`,
+        [usuarioId, usuarioId]
+      );
+
+      const stats = statsRows[0] || {};
+      const recentBooks = booksRows.map((book) => ({
+        id: book.id,
+        title: book.titulo,
+        author: book.autor,
+        status: bookStatusFromDb[book.estado_publicacion] || 'available',
+        imageUrl: buildUploadUrl(book.imagen_portada)
+      }));
+
+      const activities = activityRows.map((activity) => {
+        const isRequester = activity.solicitante_id === usuarioId;
+        const date = activity.fecha_completado || activity.fecha_respuesta || activity.fecha_propuesta;
+        const status = statusFromDb[activity.estado] || activity.estado;
+
+        const labels = {
+          pending: isRequester
+            ? `Enviaste una propuesta por "${activity.libro_solicitado}"`
+            : `Recibiste una propuesta de ${activity.solicitante_nombre}`,
+          accepted: `Propuesta aceptada para "${activity.libro_solicitado}"`,
+          rejected: `Propuesta rechazada para "${activity.libro_solicitado}"`,
+          cancelled: `Propuesta cancelada para "${activity.libro_solicitado}"`,
+          completed: `Trueque completado: "${activity.libro_solicitado}"`
+        };
+
+        const icons = {
+          pending: isRequester ? 'send' : 'inbox',
+          accepted: 'check_circle',
+          rejected: 'cancel',
+          cancelled: 'remove_circle',
+          completed: 'published_with_changes'
+        };
+
+        return {
+          id: activity.id,
+          message: labels[status] || `Movimiento en "${activity.libro_solicitado}"`,
+          time: formatRelativeTime(date),
+          icon: icons[status] || 'notifications',
+          status
+        };
+      });
+
+      res.json({
+        exito: true,
+        data: {
+          stats: {
+            propuestas: Number(stats.propuestas_enviadas || 0),
+            solicitudes: Number(stats.solicitudes_recibidas || 0),
+            truequesRealizados: Number(stats.trueques_realizados || 0),
+            librosPublicados: Number(bookCountRows[0]?.libros_publicados || 0)
+          },
+          recentBooks,
+          activities
+        }
+      });
+    } catch (error) {
+      console.error('Error en obtenerDashboard:', error);
+      res.status(500).json({
+        exito: false,
+        mensaje: 'Error al obtener la informacion del panel.'
+      });
+    }
+  },
+
+  obtenerNotificaciones: async (req, res) => {
+    try {
+      const usuarioId = req.usuario.id;
+
+      const [exchangeRows] = await pool.execute(
+        `SELECT i.id, i.estado, i.fecha_propuesta, i.fecha_respuesta, i.fecha_completado,
+                i.solicitante_id, i.receptor_id,
+                ls.titulo AS libro_solicitado,
+                us.nombre AS solicitante_nombre
+         FROM intercambios i
+         JOIN libros ls ON i.libro_solicitado_id = ls.id
+         JOIN usuarios us ON i.solicitante_id = us.id
+         WHERE i.activo = TRUE AND (i.solicitante_id = ? OR i.receptor_id = ?)
+         ORDER BY COALESCE(i.fecha_completado, i.fecha_respuesta, i.fecha_propuesta) DESC
+         LIMIT 15`,
+        [usuarioId, usuarioId]
+      );
+
+      const fromExchanges = exchangeRows.map((row) => ({
+        id: `ex-${row.id}`,
+        tipo: statusFromDb[row.estado] || row.estado,
+        titulo: 'Propuesta de trueque',
+        mensaje: row.receptor_id === usuarioId
+          ? `${row.solicitante_nombre} envió una propuesta por "${row.libro_solicitado}"`
+          : `Tu propuesta por "${row.libro_solicitado}" está ${row.estado}`,
+        fecha: row.fecha_completado || row.fecha_respuesta || row.fecha_propuesta,
+        leida: true
+      }));
+
+      let fromShelf = [];
+      try {
+        const shelfRows = await Notification.listForUser(usuarioId, 15);
+        fromShelf = shelfRows.map((row) => ({
+          id: `nt-${row.id}`,
+          tipo: row.tipo,
+          titulo: row.titulo,
+          mensaje: row.mensaje,
+          fecha: row.fecha_creacion,
+          leida: !!row.leida
+        }));
+      } catch (innerError) {
+        console.warn('Notificaciones de estante no disponibles:', innerError.message);
+      }
+
+      const notificaciones = [...fromShelf, ...fromExchanges]
+        .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
+        .slice(0, 25);
+
+      res.json({ exito: true, notificaciones });
+    } catch (error) {
+      console.error('Error en obtenerNotificaciones:', error);
+      res.status(500).json({
+        exito: false,
+        mensaje: 'Error al obtener las notificaciones.'
+      });
+    }
+  },
+
+  marcarNotificacionesLeidas: async (req, res) => {
+    try {
+      await Notification.markAllRead(req.usuario.id);
+      res.json({ exito: true });
+    } catch (error) {
+      console.error('Error en marcarNotificacionesLeidas:', error);
+      res.status(500).json({
+        exito: false,
+        mensaje: 'No se pudieron marcar las notificaciones.'
+      });
+    }
+  },
+
+  // ACTIVIDAD DE LOS LECTORES (Admin)
+  actividad: async (req, res) => {
+    const leer = async (etiqueta, sql) => {
+      try {
+        const [filas] = await pool.query(sql);
+        return filas;
+      } catch (error) {
+        console.error(`actividad ${etiqueta}:`, error.message);
+        return null;
+      }
+    };
+
+    try {
+      const conteos = await leer(
+        'conteos',
+        `SELECT
+           (SELECT COUNT(*) FROM usuarios WHERE rol = 'usuario' AND activo = TRUE) AS usuarios,
+           (SELECT COUNT(*) FROM libros WHERE activo = TRUE) AS libros,
+           (SELECT COUNT(*) FROM intercambios WHERE activo = TRUE AND estado = 'pendiente') AS propuestas,
+           (SELECT COUNT(*) FROM intercambios WHERE activo = TRUE AND estado = 'completado') AS trueques`
+      );
+
+      const usuarios = await leer(
+        'usuarios',
+        `SELECT u.id, u.nombre, u.email, u.rol, u.activo, u.fecha_registro, u.ultima_conexion,
+                (SELECT COUNT(*) FROM libros l WHERE l.usuario_id = u.id AND l.activo = TRUE) AS libros,
+                (SELECT COUNT(*) FROM intercambios i
+                  WHERE i.activo = TRUE AND (i.solicitante_id = u.id OR i.receptor_id = u.id)) AS trueques
+         FROM usuarios u
+         ORDER BY u.fecha_registro DESC`
+      ) || await leer(
+        'usuarios-simple',
+        `SELECT id, nombre, email, rol, activo, fecha_registro, ultima_conexion,
+                0 AS libros, 0 AS trueques
+         FROM usuarios
+         ORDER BY fecha_registro DESC`
+      ) || [];
+
+      const libros = await leer(
+        'libros',
+        `SELECT l.id, l.titulo, l.autor, l.estado_publicacion, l.fecha_publicacion,
+                u.nombre AS dueno
+         FROM libros l
+         JOIN usuarios u ON u.id = l.usuario_id
+         WHERE l.activo = TRUE
+         ORDER BY l.fecha_publicacion DESC
+         LIMIT 40`
+      ) || [];
+
+      const intercambios = await leer(
+        'intercambios',
+        `SELECT i.id, i.estado, i.fecha_propuesta, i.fecha_respuesta, i.fecha_completado,
+                s.nombre AS solicitante, r.nombre AS receptor,
+                ls.titulo AS libro_solicitado, lo.titulo AS libro_ofrecido
+         FROM intercambios i
+         JOIN usuarios s ON s.id = i.solicitante_id
+         JOIN usuarios r ON r.id = i.receptor_id
+         JOIN libros ls ON ls.id = i.libro_solicitado_id
+         JOIN libros lo ON lo.id = i.libro_ofrecido_id
+         WHERE i.activo = TRUE
+         ORDER BY i.fecha_propuesta DESC
+         LIMIT 40`
+      ) || [];
+
+      let avisosEstante = [];
+      try {
+        const [filas] = await pool.execute(
+          `SELECT tipo, titulo, mensaje, libro_id, fecha_creacion AS fecha
+           FROM notificaciones
+           WHERE tipo IN ('estante_deposito', 'libro_retirado')
+           ORDER BY fecha_creacion DESC
+           LIMIT 80`
+        );
+        avisosEstante = filas;
+      } catch (error) {
+        avisosEstante = [];
+      }
+
+      const actividades = [];
+      for (const usuario of usuarios) {
+        if (usuario.rol === 'admin') continue;
+        actividades.push({
+          tipo: 'registro',
+          texto: `${usuario.nombre} creó su cuenta`,
+          detalle: usuario.email,
+          fecha: usuario.fecha_registro
+        });
+        if (usuario.ultima_conexion) {
+          actividades.push({
+            tipo: 'sesion',
+            texto: `${usuario.nombre} entró a la página`,
+            detalle: usuario.email,
+            fecha: usuario.ultima_conexion
+          });
+        }
+      }
+
+      for (const libro of libros) {
+        actividades.push({
+          tipo: 'libro',
+          texto: `${libro.dueno} publicó "${libro.titulo}"`,
+          detalle: libro.autor,
+          fecha: libro.fecha_publicacion,
+          libroId: Number(libro.id)
+        });
+      }
+
+      for (const intercambio of intercambios) {
+        actividades.push({
+          tipo: 'trueque',
+          texto: `${intercambio.solicitante} propuso "${intercambio.libro_ofrecido}" por "${intercambio.libro_solicitado}" a ${intercambio.receptor}`,
+          detalle: intercambio.estado,
+          fecha: intercambio.fecha_propuesta
+        });
+        if (intercambio.fecha_completado) {
+          actividades.push({
+            tipo: 'trueque',
+            texto: `${intercambio.solicitante} y ${intercambio.receptor} completaron el trueque de "${intercambio.libro_solicitado}"`,
+            detalle: 'completado',
+            fecha: intercambio.fecha_completado
+          });
+        } else if (intercambio.fecha_respuesta && intercambio.estado === 'aceptado') {
+          actividades.push({
+            tipo: 'trueque',
+            texto: `${intercambio.receptor} aceptó el trueque de "${intercambio.libro_solicitado}"`,
+            detalle: 'aceptado',
+            fecha: intercambio.fecha_respuesta
+          });
+        } else if (intercambio.fecha_respuesta && intercambio.estado === 'rechazado') {
+          actividades.push({
+            tipo: 'trueque',
+            texto: `${intercambio.receptor} rechazó la propuesta de ${intercambio.solicitante}`,
+            detalle: 'rechazado',
+            fecha: intercambio.fecha_respuesta
+          });
+        }
+      }
+
+      const vistos = new Set();
+      for (const aviso of avisosEstante) {
+        const momento = new Date(aviso.fecha);
+        const marca = Number.isNaN(momento.getTime()) ? String(aviso.fecha || '') : momento.toISOString().slice(0, 19);
+        const clave = `${aviso.mensaje}|${marca}`;
+        if (vistos.has(clave)) continue;
+        vistos.add(clave);
+        actividades.push({
+          tipo: 'estante',
+          texto: aviso.mensaje,
+          detalle: aviso.titulo,
+          fecha: aviso.fecha,
+          libroId: aviso.libro_id ? Number(aviso.libro_id) : null
+        });
+      }
+
+      actividades.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
+
+      const conteo = conteos?.[0] || {};
+      const lectores = usuarios.filter((usuario) => usuario.rol === 'usuario' && usuario.activo !== 0 && usuario.activo !== false);
+      res.json({
+        exito: true,
+        resumen: {
+          usuarios: Number(conteo.usuarios) || lectores.length,
+          libros: Number(conteo.libros) || libros.length,
+          propuestas: Number(conteo.propuestas) || intercambios.filter((item) => item.estado === 'pendiente').length,
+          trueques: Number(conteo.trueques) || intercambios.filter((item) => item.estado === 'completado').length
+        },
+        actividades: actividades.slice(0, 40),
+        usuarios: usuarios.map((usuario) => ({
+          id: Number(usuario.id),
+          nombre: usuario.nombre,
+          email: usuario.email,
+          rol: usuario.rol,
+          activo: Boolean(usuario.activo),
+          libros: Number(usuario.libros) || 0,
+          trueques: Number(usuario.trueques) || 0,
+          fecha_registro: usuario.fecha_registro,
+          ultima_conexion: usuario.ultima_conexion
+        })),
+        libros: libros.map((libro) => ({
+          id: Number(libro.id),
+          titulo: libro.titulo,
+          autor: libro.autor,
+          estado: libro.estado_publicacion,
+          fecha: libro.fecha_publicacion,
+          dueno: libro.dueno
+        })),
+        intercambios: intercambios.map((intercambio) => ({
+          id: Number(intercambio.id),
+          estado: intercambio.estado,
+          fecha: intercambio.fecha_propuesta,
+          solicitante: intercambio.solicitante,
+          receptor: intercambio.receptor,
+          libroSolicitado: intercambio.libro_solicitado,
+          libroOfrecido: intercambio.libro_ofrecido
+        }))
+      });
+    } catch (error) {
+      console.error('Error en actividad:', error);
+      res.status(500).json({
+        exito: false,
+        mensaje: 'No se pudo cargar la actividad.'
+      });
+    }
+  },
+
+  // LISTAR TODOS LOS USUARIOS (Admin)
+  listarUsuarios: async (req, res) => {
+    try {
+      const [usuarios] = await pool.execute(
+        `SELECT id, nombre, email, foto_perfil, ubicacion, rol, activo, 
+                fecha_registro, ultima_conexion 
+         FROM usuarios 
+         ORDER BY fecha_registro DESC`
+      );
+
+      res.json({
+        exito: true,
+        total: usuarios.length,
+        usuarios
+      });
+    } catch (error) {
+      console.error('Error en listarUsuarios:', error);
+      res.status(500).json({
+        exito: false,
+        mensaje: 'Error al obtener la lista de usuarios.'
+      });
+    }
+  },
+
+  // OBTENER USUARIO POR ID
+  obtenerUsuarioPorId: async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      const [usuarios] = await pool.execute(
+        `SELECT id, nombre, email, foto_perfil, biografia, ubicacion, 
+                telefono, rol, fecha_registro 
+         FROM usuarios 
+         WHERE id = ? AND activo = TRUE`,
+        [id]
+      );
+
+      if (usuarios.length === 0) {
+        return res.status(404).json({
+          exito: false,
+          mensaje: 'Usuario no encontrado.'
+        });
+      }
+
+      res.json({
+        exito: true,
+        usuario: usuarios[0]
+      });
+    } catch (error) {
+      console.error('Error en obtenerUsuarioPorId:', error);
+      res.status(500).json({
+        exito: false,
+        mensaje: 'Error al obtener el usuario.'
+      });
+    }
+  },
+
+  // ELIMINAR USUARIO (Admin - Soft delete)
+  eliminarUsuario: async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      // No permitir eliminarse a sí mismo
+      if (parseInt(id) === req.usuario.id) {
+        return res.status(400).json({
+          exito: false,
+          mensaje: 'No puedes eliminar tu propia cuenta desde aquí.'
+        });
+      }
+
+      await pool.execute(
+        'UPDATE usuarios SET activo = FALSE WHERE id = ?',
+        [id]
+      );
+
+      res.json({
+        exito: true,
+        mensaje: 'Usuario desactivado exitosamente.'
+      });
+    } catch (error) {
+      console.error('Error en eliminarUsuario:', error);
+      res.status(500).json({
+        exito: false,
+        mensaje: 'Error al desactivar el usuario.'
+      });
+    }
+  }
+};
+
+module.exports = usuarioController;

@@ -1,0 +1,37 @@
+.invite, .chat { font-family: Inter, sans-serif; color: #243424; }
+.invite {
+  position: fixed; right: 20px; bottom: 88px; z-index: 30; width: min(360px, calc(100vw - 32px));
+  padding: 16px; border-radius: 18px; background: #fffef8; border: 1px solid rgba(93,139,31,.28);
+  box-shadow: 0 16px 40px rgba(47,79,47,.16);
+}
+.invite-kicker { margin: 0 0 4px; color: #5d8b1f; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.invite-copy, .chat-head p, .achievement p { margin: 0; line-height: 1.45; }
+.invite-actions, .composer { display: flex; gap: 8px; align-items: center; }
+.invite-actions { margin-top: 12px; }
+.invite-more, .step, .offline { margin: 8px 0 0; color: #5d6b3a; font-size: 13px; }
+.primary, .quiet {
+  border: 0; border-radius: 999px; padding: 8px 14px; font-weight: 700; cursor: pointer;
+}
+.primary { background: #3f6b12; color: #fff; }
+.primary:disabled { opacity: .55; cursor: default; }
+.quiet { background: transparent; color: #3f6b12; }
+.icon { font-size: 22px; line-height: 1; padding: 0 8px; }
+.backdrop { position: fixed; inset: 0; z-index: 40; background: rgba(28, 40, 22, .35); }
+.chat {
+  position: fixed; z-index: 41; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: min(520px, calc(100vw - 24px)); max-height: min(720px, calc(100vh - 32px));
+  display: flex; flex-direction: column; gap: 12px; padding: 18px;
+  border-radius: 20px; background: #fffef8; box-shadow: 0 24px 60px rgba(28,40,22,.25);
+}
+.chat-head { display: flex; justify-content: space-between; gap: 12px; }
+.chat-head h2, .achievement h3 { margin: 0; font-family: Fraunces, Georgia, serif; }
+.thread { display: grid; gap: 8px; overflow: auto; min-height: 180px; max-height: 360px; }
+.thread article { max-width: 85%; padding: 10px 12px; border-radius: 14px; line-height: 1.4; }
+.theirs { background: #eef6df; }
+.mine { justify-self: end; background: #243424; color: #f7f6f1; }
+.composer textarea {
+  flex: 1; resize: none; border: 1px solid rgba(93,139,31,.35); border-radius: 12px; padding: 10px; font: inherit;
+}
+.achievement { display: grid; gap: 8px; padding: 8px 4px 4px; }
+.score { color: #3f6b12; font-weight: 800; }
+.error { margin: 0; color: #b42318; }

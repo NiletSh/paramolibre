@@ -1,0 +1,33 @@
+<section class="night" @rise>
+  <div class="copy">
+    <h1>
+      <span class="line word one">Un libro</span>
+      <span class="line word mid"><em>encuentra</em></span>
+      <span class="line word two">otro libro.</span>
+    </h1>
+    <p class="line note">Páramo Libre junta a quien suelta una historia con quien la está buscando.</p>
+    <div class="line actions">
+      <div class="action-row">
+        <a class="enter" routerLink="/catalogo">Ver el catálogo</a>
+        <a class="soft" routerLink="/auth/login">Iniciar sesión</a>
+        <a class="soft" routerLink="/auth/registro">Crear cuenta</a>
+      </div>
+      <button type="button" class="soft" (click)="openShareModal()">Compartir</button>
+    </div>
+  </div>
+
+  <div class="still" @plate>
+    <figure>
+      <img src="assets/images/libros2.png" alt="Libros abiertos flotando" />
+    </figure>
+  </div>
+
+  <div class="ticker" aria-hidden="true">
+    <div class="ticker-track">
+      <span>Novela</span><span>Ciencia</span><span>Arte</span><span>Historia</span><span>Poesía</span><span>Filosofía</span>
+      <span>Novela</span><span>Ciencia</span><span>Arte</span><span>Historia</span><span>Poesía</span><span>Filosofía</span>
+    </div>
+  </div>
+</section>
+
+<app-share-modal *ngIf="shareOpen" (close)="closeShareModal()"></app-share-modal>
