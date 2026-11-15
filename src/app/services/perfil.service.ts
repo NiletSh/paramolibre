@@ -25,7 +25,7 @@ export class PerfilService {
       fotoUrl: this.normalizeAssetUrl(data.foto_perfil || data.avatar),
       fechaRegistro: data.fecha_registro || data.createdAt || '',
       librosPublicados: data.libros_publicados || 0,
-      intercambiosCompletados: data.intercambios_completados || 0
+      lecturasValidadas: data.lecturas_validadas || 0
     };
   }
 

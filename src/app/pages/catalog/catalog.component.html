@@ -3,7 +3,7 @@
   <header class="catalog-header">
     <div class="header-content">
       <h1>Catálogo de libros</h1>
-      <p>{{ totalResults }} libros disponibles para trueque</p>
+      <p>{{ totalResults }} libros en la biblioteca</p>
     </div>
     <a class="btn-publish-catalog" routerLink="/publicar-libro" *ngIf="isLoggedIn">
       <span class="material-icons">add</span>
@@ -78,7 +78,7 @@
       <div class="book-cover" [style.background]="book.imageUrl ? 'transparent' : 'linear-gradient(135deg, ' + book.imageColor + ' 0%, ' + book.imageColor + 'dd 100%)'">
         <img *ngIf="book.imageUrl" [src]="book.imageUrl" alt="" (error)="hideCover(book)">
         <span class="material-icons" *ngIf="!book.imageUrl">auto_stories</span>
-        <div class="book-status-badge" [style.background]="book.status === 'available' ? '#2d6a4f' : (book.status === 'reserved' ? '#e76f51' : '#868e96')">
+        <div class="book-status-badge" [style.background]="book.status === 'available' ? '#55603C' : (book.status === 'reserved' ? '#C4785C' : '#868e96')">
           {{ statusLabels[book.status] }}
         </div>
       </div>
@@ -107,14 +107,6 @@
             <a class="btn-view" [routerLink]="['/libro', book.id]">
               <span class="material-icons">visibility</span>
               Ver
-            </a>
-            <a class="btn-exchange" *ngIf="isLoggedIn && !isOwnBook(book)" [routerLink]="['/intercambio', book.id]">
-              <span class="material-icons">swap_horiz</span>
-              Trueque
-            </a>
-            <a class="btn-exchange btn-login" *ngIf="!isLoggedIn" routerLink="/auth/login" [queryParams]="{ returnUrl: 'intercambio/' + book.id, reason: 'Debes iniciar sesión para proponer un trueque.' }">
-              <span class="material-icons">login</span>
-              Iniciar sesión
             </a>
           </div>
         </div>

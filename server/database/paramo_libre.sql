@@ -118,55 +118,7 @@ CREATE TABLE imagenes_libros (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================
--- 6. TABLA: intercambios (propuestas)
--- ============================================================
-CREATE TABLE intercambios (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    libro_solicitado_id INT UNSIGNED NOT NULL,
-    libro_ofrecido_id INT UNSIGNED NOT NULL,
-    solicitante_id INT UNSIGNED NOT NULL,
-    receptor_id INT UNSIGNED NOT NULL,
-    estado ENUM('pendiente', 'aceptado', 'rechazado', 'cancelado', 'completado') DEFAULT 'pendiente' NOT NULL,
-    mensaje TEXT DEFAULT NULL,
-    respuesta_mensaje TEXT DEFAULT NULL,
-    fecha_propuesta TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    fecha_respuesta TIMESTAMP NULL DEFAULT NULL,
-    fecha_completado TIMESTAMP NULL DEFAULT NULL,
-    activo BOOLEAN DEFAULT TRUE NOT NULL,
-    
-    CONSTRAINT fk_int_libro_sol FOREIGN KEY (libro_solicitado_id) REFERENCES libros(id) ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT fk_int_libro_ofr FOREIGN KEY (libro_ofrecido_id) REFERENCES libros(id) ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT fk_int_solicitante FOREIGN KEY (solicitante_id) REFERENCES usuarios(id) ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT fk_int_receptor FOREIGN KEY (receptor_id) REFERENCES usuarios(id) ON DELETE CASCADE ON UPDATE CASCADE,
-    
-    INDEX idx_solicitante (solicitante_id),
-    INDEX idx_receptor (receptor_id),
-    INDEX idx_estado (estado),
-    INDEX idx_activo (activo),
-    INDEX idx_fecha_propuesta (fecha_propuesta)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ============================================================
--- 7. TABLA: historial_intercambios (auditoría)
--- ============================================================
-CREATE TABLE historial_intercambios (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    intercambio_id INT UNSIGNED NOT NULL,
-    estado_anterior VARCHAR(50) NOT NULL,
-    estado_nuevo VARCHAR(50) NOT NULL,
-    cambiado_por_id INT UNSIGNED DEFAULT NULL,
-    fecha_cambio TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    notas TEXT DEFAULT NULL,
-    
-    CONSTRAINT fk_hist_intercambio FOREIGN KEY (intercambio_id) REFERENCES intercambios(id) ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT fk_hist_usuario FOREIGN KEY (cambiado_por_id) REFERENCES usuarios(id) ON DELETE SET NULL ON UPDATE CASCADE,
-    
-    INDEX idx_intercambio_id (intercambio_id),
-    INDEX idx_fecha_cambio (fecha_cambio)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ============================================================
--- 8. TABLA: favoritos
+-- 6. TABLA: favoritos
 -- ============================================================
 CREATE TABLE favoritos (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -197,7 +149,7 @@ CREATE TABLE configuraciones_usuario (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================
--- 10. TABLA: notificaciones (estante / trueques)
+-- 10. TABLA: notificaciones (estante)
 -- ============================================================
 CREATE TABLE notificaciones (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -244,7 +196,7 @@ INSERT INTO usuarios (nombre, email, password_hash, foto_perfil, biografia, ubic
 INSERT INTO configuraciones_usuario (usuario_id) VALUES
 (1), (2), (3), (4), (5);
 
--- Libros, trueques y favoritos quedan vacíos. Se publican desde la página.
+-- Libros y favoritos quedan vacíos. Se publican desde la página.
 
 -- ============================================================
 -- 13. VISTAS ÚTILES PARA ESTADÍSTICAS (Panel Admin)
@@ -254,9 +206,7 @@ INSERT INTO configuraciones_usuario (usuario_id) VALUES
 CREATE VIEW vw_resumen_plataforma AS
 SELECT 
     (SELECT COUNT(*) FROM usuarios WHERE activo = TRUE) AS total_usuarios,
-    (SELECT COUNT(*) FROM libros WHERE activo = TRUE AND estado_publicacion = 'disponible') AS libros_disponibles,
-    (SELECT COUNT(*) FROM intercambios WHERE estado = 'completado') AS intercambios_completados,
-    (SELECT COUNT(*) FROM intercambios WHERE estado = 'pendiente') AS propuestas_pendientes;
+    (SELECT COUNT(*) FROM libros WHERE activo = TRUE AND estado_publicacion = 'disponible') AS libros_disponibles;
 
 -- Vista: Libros por categoría
 CREATE VIEW vw_libros_por_categoria AS

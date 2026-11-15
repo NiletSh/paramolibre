@@ -23,7 +23,7 @@ import { RouterOutlet } from '@angular/router';
       justify-content: center;
       overflow-x: hidden;
       overflow-y: auto;
-      background: #E9F2C9;
+      background: #F5EFE4;
       padding: clamp(1rem, 3vw, 2rem);
     }
 

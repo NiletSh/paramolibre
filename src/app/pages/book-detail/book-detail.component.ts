@@ -40,7 +40,6 @@ export class BookDetailComponent implements OnInit {
   notFound = false;
   isLoggedIn = false;
   canEditBook = false;
-  isOwnBook = false;
   cardUid = '';
   linkedUid = '';
   cardLinked = false;
@@ -54,22 +53,22 @@ export class BookDetailComponent implements OnInit {
   };
 
   conditionColors: Record<string, string> = {
-    new: '#2d6a4f',
-    like_new: '#0d7377',
-    good: '#e76f51',
+    new: '#55603C',
+    like_new: '#A65338',
+    good: '#C4785C',
     fair: '#868e96'
   };
 
   statusLabels: Record<string, string> = {
-    available: 'Disponible para trueque',
-    exchanged: 'Ya fue intercambiado',
-    reserved: 'Reservado temporalmente'
+    available: 'Disponible',
+    exchanged: 'Prestado',
+    reserved: 'Apartado'
   };
 
   statusColors: Record<string, string> = {
-    available: '#2d6a4f',
+    available: '#55603C',
     exchanged: '#868e96',
-    reserved: '#e76f51'
+    reserved: '#C4785C'
   };
 
   constructor(
@@ -100,7 +99,6 @@ export class BookDetailComponent implements OnInit {
 
         this.book = this.toBookDetail(book);
         this.canEditBook = this.canEdit(this.book);
-        this.isOwnBook = this.ownsBook(this.book);
         const savedUid = book.rfidUid || this.rememberedCard(book.id);
         if (savedUid) {
           this.linkedUid = savedUid;
@@ -125,15 +123,6 @@ export class BookDetailComponent implements OnInit {
     this.router.navigate(['/catalogo']);
   }
 
-  goToLogin(): void {
-    this.router.navigate(['/auth/login'], {
-      queryParams: {
-        returnUrl: `intercambio/${this.book?.id}`,
-        reason: 'Debes iniciar sesión para proponer un trueque.'
-      }
-    });
-  }
-
   private toBookDetail(book: Book): BookDetail {
     return {
       id: book.id || '',
@@ -147,7 +136,7 @@ export class BookDetailComponent implements OnInit {
       owner: book.ownerName || 'Usuario',
       status: book.status || 'available',
       publishedDate: this.formatDate(book.createdAt),
-      imageColor: '#0d7377',
+      imageColor: '#A65338',
       imageUrl: book.imageUrl || 'assets/images/hero-books.svg'
     };
   }
@@ -219,11 +208,6 @@ export class BookDetailComponent implements OnInit {
   private canEdit(book: BookDetail): boolean {
     const user = this.authService.getCurrentUser();
     return !!user && (this.sameUser(book.ownerId, user.id) || user.rol === 'admin');
-  }
-
-  private ownsBook(book: BookDetail): boolean {
-    const user = this.authService.getCurrentUser();
-    return !!user && this.sameUser(book.ownerId, user.id);
   }
 
   private sameUser(ownerId: string | undefined, userId: number): boolean {

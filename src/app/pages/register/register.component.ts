@@ -134,7 +134,7 @@ export class RegisterComponent {
   get strengthColor(): string {
     const s = this.passwordStrength;
     if (s === 1) return '#ff6b6b';
-    if (s === 2) return '#e76f51';
-    return '#2d6a4f';
+    if (s === 2) return '#C4785C';
+    return '#55603C';
   }
 }

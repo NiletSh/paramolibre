@@ -1,14 +1,14 @@
 :host {
   display: block;
   min-height: calc(100vh - 72px);
-  background: #E9F2C9;
+  background: #F5EFE4;
 }
 
 .admin-page {
   max-width: 1180px;
   margin: 0 auto;
   padding: 28px 20px 48px;
-  color: #2f4f2f;
+  color: #352C25;
 }
 
 .admin-hero h1 {
@@ -23,13 +23,13 @@
 .admin-error,
 .admin-loading {
   margin: 0;
-  color: #5d6b3a;
+  color: #5E6844;
 }
 
 .eyebrow {
   display: inline-block;
   margin-bottom: 8px;
-  color: #5d8b1f;
+  color: #8A3F2A;
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -38,7 +38,7 @@
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   margin: 22px 0;
 }
@@ -47,7 +47,7 @@
 .panel,
 .shelf-live {
   background: rgba(255, 255, 255, 0.92);
-  border: 1px solid rgba(93, 139, 31, 0.18);
+  border: 1px solid rgba(138, 63, 42, 0.18);
   border-radius: 16px;
 }
 
@@ -57,7 +57,7 @@
 
 .stats span {
   display: block;
-  color: #6a7d3b;
+  color: #5E6844;
   font-size: 13px;
 }
 
@@ -83,7 +83,7 @@
 }
 
 .shelf-more {
-  color: #5d8b1f;
+  color: #8A3F2A;
   font-size: 13px;
   font-weight: 750;
   text-decoration: none;
@@ -91,13 +91,13 @@
 
 .shelf-live-head span,
 .shelf-meters span {
-  color: #6a7d3b;
+  color: #5E6844;
   font-size: 13px;
 }
 
 .shelf-live-head span.on,
 .shelf-meters b {
-  color: #3f6b16;
+  color: #8A3F2A;
   font-weight: 750;
 }
 
@@ -127,7 +127,7 @@
 }
 
 .tarjetas span {
-  color: #6a7d3b;
+  color: #5E6844;
   font-size: 12px;
 }
 
@@ -170,7 +170,7 @@
   display: grid;
   gap: 2px;
   padding: 10px 0;
-  border-top: 1px solid rgba(93, 139, 31, 0.14);
+  border-top: 1px solid rgba(138, 63, 42, 0.14);
 }
 
 .feed li:first-child,
@@ -181,7 +181,7 @@
 .feed b,
 .plain b,
 .plain a {
-  color: #2f4f2f;
+  color: #352C25;
 }
 
 .plain a {
@@ -193,7 +193,7 @@
 .plain span,
 .feed time,
 .plain time {
-  color: #6a7d3b;
+  color: #5E6844;
   font-size: 13px;
 }
 
@@ -211,12 +211,12 @@ th,
 td {
   padding: 8px 6px;
   text-align: left;
-  border-bottom: 1px solid rgba(93, 139, 31, 0.14);
+  border-bottom: 1px solid rgba(138, 63, 42, 0.14);
   white-space: nowrap;
 }
 
 th {
-  color: #5d8b1f;
+  color: #8A3F2A;
   font-size: 12px;
   font-weight: 800;
 }

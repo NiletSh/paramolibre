@@ -95,13 +95,6 @@
 
       <div class="trade-guide">
         <div class="guide-item">
-          <span class="material-icons">swap_horiz</span>
-          <div>
-            <strong>Trueque por otro libro</strong>
-            <p>Para proponer, selecciona un libro de tu biblioteca y envía un mensaje al dueño.</p>
-          </div>
-        </div>
-        <div class="guide-item">
           <span class="material-icons">inventory_2</span>
           <div>
             <strong>Estante comunitario</strong>
@@ -129,16 +122,6 @@
           Editar libro
         </button>
 
-        <button class="btn-exchange-main" *ngIf="book.status === 'available' && isLoggedIn && !isOwnBook" [routerLink]="['/intercambio', book.id]">
-          <span class="material-icons">swap_horiz</span>
-          Proponer trueque
-        </button>
-
-        <button class="btn-exchange-main btn-login-required" *ngIf="book.status === 'available' && !isLoggedIn" (click)="goToLogin()">
-          <span class="material-icons">login</span>
-          Inicia sesión para proponer trueque
-        </button>
-        
         <button class="btn-exchange-main disabled" *ngIf="book.status !== 'available'" disabled>
           <span class="material-icons">block</span>
           No disponible

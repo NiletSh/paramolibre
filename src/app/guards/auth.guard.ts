@@ -29,19 +29,12 @@ export class AuthGuard implements CanActivate {
     if (url.includes('publicar-libro') || url.includes('publicar')) {
       return 'Debes iniciar sesion para publicar un libro.';
     }
-    if (url.includes('mis-propuestas') || url.includes('propuestas')) {
-      return 'Debes iniciar sesion para ver tus propuestas.';
-    }
     if (url.includes('dashboard') || url.includes('mi-espacio')) {
       return 'Debes iniciar sesion para acceder a Mi espacio.';
     }
     if (url.includes('perfil')) {
       return 'Debes iniciar sesion para editar tu perfil.';
     }
-    if (url.includes('intercambio')) {
-      return 'Debes iniciar sesion para proponer un trueque.';
-    }
-
     return 'Debes iniciar sesion para continuar.';
   }
 }

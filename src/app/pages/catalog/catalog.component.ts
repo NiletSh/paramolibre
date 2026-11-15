@@ -50,21 +50,20 @@ export class CatalogComponent implements OnInit {
   };
 
   conditionColors: Record<string, string> = {
-    new: '#2d6a4f',
-    like_new: '#0d7377',
-    good: '#e76f51',
+    new: '#55603C',
+    like_new: '#A65338',
+    good: '#C4785C',
     fair: '#868e96'
   };
 
   statusLabels: Record<string, string> = {
     available: 'Disponible',
-    exchanged: 'Intercambiado',
+    exchanged: 'Prestado',
     reserved: 'Reservado'
   };
 
   allBooks: CatalogBook[] = [];
   isLoggedIn = false;
-  private currentUserId: number | null = null;
 
   constructor(
     private bookService: BookService,
@@ -74,9 +73,6 @@ export class CatalogComponent implements OnInit {
   ngOnInit(): void {
     this.authService.isAuthenticated$.subscribe((status) => {
       this.isLoggedIn = status;
-    });
-    this.authService.currentUser$.subscribe((user) => {
-      this.currentUserId = user?.id ?? null;
     });
     this.loadBooks();
   }
@@ -170,7 +166,7 @@ export class CatalogComponent implements OnInit {
   }
 
   private toCatalogBook(book: Book, index: number): CatalogBook {
-    const colors = ['#0d7377', '#7b2cbf', '#e63946', '#2d6a4f', '#e76f51'];
+    const colors = ['#A65338', '#7b2cbf', '#e63946', '#55603C', '#C4785C'];
 
     return {
       id: book.id || index + 1,
@@ -190,12 +186,6 @@ export class CatalogComponent implements OnInit {
 
   hideCover(book: CatalogBook): void {
     book.imageUrl = null;
-  }
-
-  isOwnBook(book: CatalogBook): boolean {
-    return this.currentUserId != null
-      && book.ownerId != null
-      && Number(book.ownerId) === Number(this.currentUserId);
   }
 
   private normalizeText(value: string): string {

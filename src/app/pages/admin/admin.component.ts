@@ -5,7 +5,6 @@ import { Subscription } from 'rxjs';
 import {
   AdminActivityItem,
   AdminBookRow,
-  AdminExchangeRow,
   AdminUserRow,
   DashboardService
 } from '../../services/dashboard.service';
@@ -21,12 +20,10 @@ import { SHELF_CARDS, ShelfLiveService, ShelfLiveState } from '../../services/sh
 export class AdminComponent implements OnInit, OnDestroy {
   loading = true;
   error = '';
-  truequesListos = true;
-  resumen = { usuarios: 0, libros: 0, propuestas: 0, trueques: 0 };
+  resumen = { usuarios: 0, libros: 0 };
   actividades: AdminActivityItem[] = [];
   usuarios: AdminUserRow[] = [];
   libros: AdminBookRow[] = [];
-  intercambios: AdminExchangeRow[] = [];
   live: ShelfLiveState = {
     connected: false,
     deviceOnline: false,
@@ -81,8 +78,8 @@ export class AdminComponent implements OnInit, OnDestroy {
   estadoLibro(estado: string): string {
     const labels: Record<string, string> = {
       disponible: 'Disponible',
-      en_intercambio: 'En trueque',
-      intercambiado: 'Intercambiado',
+      en_intercambio: 'En préstamo',
+      intercambiado: 'Prestado',
       pausado: 'Pausado'
     };
     return labels[estado] || estado;
@@ -90,17 +87,6 @@ export class AdminComponent implements OnInit, OnDestroy {
 
   enEstante(index: number): boolean {
     return (this.live.presentes || '1111').charAt(index) !== '0';
-  }
-
-  estadoTrueque(estado: string): string {
-    const labels: Record<string, string> = {
-      pendiente: 'Pendiente',
-      aceptado: 'Aceptado',
-      rechazado: 'Rechazado',
-      cancelado: 'Cancelado',
-      completado: 'Completado'
-    };
-    return labels[estado] || estado;
   }
 
   private load(showSpinner = true): void {
@@ -111,9 +97,7 @@ export class AdminComponent implements OnInit, OnDestroy {
         this.actividades = data.actividades || [];
         this.usuarios = data.usuarios || [];
         this.libros = data.libros || [];
-        this.intercambios = data.intercambios || [];
-        this.truequesListos = data.truequesDisponibles !== false;
-        const vacio = !this.usuarios.length && !this.libros.length && !this.truequesListos;
+        const vacio = !this.usuarios.length && !this.libros.length;
         this.error = vacio
           ? 'No se pudo cargar la actividad. Entra de nuevo con la cuenta administradora.'
           : '';

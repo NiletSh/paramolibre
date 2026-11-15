@@ -9,8 +9,8 @@
   display: grid;
   place-items: center;
   padding: 16px;
-  color: #2f4f2f;
-  background: #E9F2C9;
+  color: #352C25;
+  background: #F5EFE4;
   animation: fadeInUp 0.55s ease-out;
 }
 
@@ -23,7 +23,7 @@
   border: 0;
   border-radius: 28px;
   background: #f4fbe6;
-  box-shadow: 0 18px 40px rgba(47, 79, 47, 0.12);
+  box-shadow: 0 18px 40px rgba(53, 44, 37, 0.12);
 }
 
 .auth-visual {
@@ -35,13 +35,13 @@
   padding: 24px;
   color: #ffffff;
   background:
-    linear-gradient(160deg, rgba(47, 79, 47, 0.9), rgba(93, 139, 31, 0.78)),
+    linear-gradient(160deg, rgba(53, 44, 37, 0.9), rgba(138, 63, 42, 0.78)),
     url('/assets/images/logo_paramo.png') center 58% / 62% no-repeat;
 }
 
 .eyebrow {
   margin: 0 0 8px;
-  color: #5d8b1f;
+  color: #8A3F2A;
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -108,7 +108,7 @@
 
 .register-brand h2 {
   margin: 0;
-  color: #2f4f2f;
+  color: #352C25;
   font-size: 24px;
   font-weight: 850;
   line-height: 1.1;
@@ -138,11 +138,11 @@
   --mdc-outlined-text-field-focus-outline-width: 1.5px;
   --mdc-outlined-text-field-outline-color: rgba(123, 189, 47, 0.24);
   --mdc-outlined-text-field-hover-outline-color: rgba(123, 189, 47, 0.38);
-  --mdc-outlined-text-field-focus-outline-color: #5d8b1f;
-  --mdc-outlined-text-field-input-text-color: #2f4f2f;
-  --mdc-outlined-text-field-label-text-color: #6a7d3b;
-  --mdc-outlined-text-field-focus-label-text-color: #5d8b1f;
-  --mdc-outlined-text-field-hover-label-text-color: #5d8b1f;
+  --mdc-outlined-text-field-focus-outline-color: #8A3F2A;
+  --mdc-outlined-text-field-input-text-color: #352C25;
+  --mdc-outlined-text-field-label-text-color: #5E6844;
+  --mdc-outlined-text-field-focus-label-text-color: #8A3F2A;
+  --mdc-outlined-text-field-hover-label-text-color: #8A3F2A;
   --mdc-outlined-text-field-error-outline-color: #c64b3d;
   --mdc-outlined-text-field-error-label-text-color: #c64b3d;
 }
@@ -154,13 +154,13 @@
 
 ::ng-deep .register-form .mat-mdc-text-field-wrapper {
   background: #ffffff !important;
-  border: 1.5px solid rgba(93, 139, 31, 0.35) !important;
+  border: 1.5px solid rgba(138, 63, 42, 0.35) !important;
   border-radius: 24px !important;
   overflow: hidden;
 }
 
 ::ng-deep .register-form .mat-mdc-form-field.mat-focused .mat-mdc-text-field-wrapper {
-  border-color: #5d8b1f !important;
+  border-color: #8A3F2A !important;
   box-shadow: none;
 }
 
@@ -202,7 +202,7 @@
 ::ng-deep .register-form .mat-mdc-form-field-icon-prefix,
 ::ng-deep .register-form .mat-mdc-form-field-icon-suffix,
 ::ng-deep .register-form .mat-mdc-form-field-icon-suffix button {
-  color: #5d8b1f !important;
+  color: #8A3F2A !important;
 }
 
 .strength-bar {
@@ -229,7 +229,7 @@
 
 .strength-label {
   min-width: 54px;
-  color: #5d8b1f;
+  color: #8A3F2A;
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.04em;
@@ -247,14 +247,14 @@
 
 ::ng-deep .terms-row .mat-mdc-checkbox {
   --mdc-checkbox-selected-checkmark-color: #ffffff;
-  --mdc-checkbox-selected-focus-icon-color: #5d8b1f;
-  --mdc-checkbox-selected-hover-icon-color: #5d8b1f;
-  --mdc-checkbox-selected-icon-color: #5d8b1f;
-  --mdc-checkbox-selected-pressed-icon-color: #5d8b1f;
-  --mdc-checkbox-unselected-focus-icon-color: rgba(47, 79, 47, 0.5);
-  --mdc-checkbox-unselected-hover-icon-color: rgba(47, 79, 47, 0.7);
-  --mdc-checkbox-unselected-icon-color: rgba(47, 79, 47, 0.25);
-  --mdc-checkbox-unselected-pressed-icon-color: rgba(47, 79, 47, 0.5);
+  --mdc-checkbox-selected-focus-icon-color: #8A3F2A;
+  --mdc-checkbox-selected-hover-icon-color: #8A3F2A;
+  --mdc-checkbox-selected-icon-color: #8A3F2A;
+  --mdc-checkbox-selected-pressed-icon-color: #8A3F2A;
+  --mdc-checkbox-unselected-focus-icon-color: rgba(53, 44, 37, 0.5);
+  --mdc-checkbox-unselected-hover-icon-color: rgba(53, 44, 37, 0.7);
+  --mdc-checkbox-unselected-icon-color: rgba(53, 44, 37, 0.25);
+  --mdc-checkbox-unselected-pressed-icon-color: rgba(53, 44, 37, 0.5);
 }
 
 ::ng-deep .terms-row .mat-mdc-checkbox .mdc-label {
@@ -264,7 +264,7 @@
 }
 
 .terms-text a {
-  color: #5d8b1f;
+  color: #8A3F2A;
   font-weight: 800;
   text-decoration: none;
 }
@@ -285,7 +285,7 @@
   width: 100%;
   height: 40px !important;
   border-radius: 22px !important;
-  background: linear-gradient(135deg, #7bbd2f 0%, #5d8b1f 100%) !important;
+  background: linear-gradient(135deg, #A65338 0%, #8A3F2A 100%) !important;
   color: #ffffff !important;
   font-size: 15px !important;
   font-weight: 800 !important;
@@ -324,12 +324,12 @@
 
 .register-footer p {
   margin: 0;
-  color: #6a7d3b;
+  color: #5E6844;
   font-size: 14px;
 }
 
 .register-footer a {
-  color: #5d8b1f;
+  color: #8A3F2A;
   font-weight: 800;
   text-decoration: none;
 }

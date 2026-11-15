@@ -239,7 +239,7 @@ const usuarioController = {
                 u.ubicacion, u.telefono, u.rol, u.fecha_registro, u.ultima_conexion,
                 c.notificaciones_email, c.tema, c.privacidad_perfil, c.idioma,
                 (SELECT COUNT(*) FROM libros l WHERE l.usuario_id = u.id AND l.activo = TRUE) AS libros_publicados,
-                (SELECT COUNT(*) FROM intercambios i WHERE (i.solicitante_id = u.id OR i.receptor_id = u.id) AND i.estado = 'completado' AND i.activo = TRUE) AS intercambios_completados
+                (SELECT COUNT(*) FROM reading_sessions rs WHERE rs.user_id = u.id AND rs.comprehension_status = 'VALIDADO') AS lecturas_validadas
          FROM usuarios u
          LEFT JOIN configuraciones_usuario c ON u.id = c.usuario_id
          WHERE u.id = ? AND u.activo = TRUE`,
@@ -466,12 +466,11 @@ const usuarioController = {
 
       const [statsRows] = await pool.execute(
         `SELECT
-          SUM(CASE WHEN solicitante_id = ? THEN 1 ELSE 0 END) AS propuestas_enviadas,
-          SUM(CASE WHEN receptor_id = ? THEN 1 ELSE 0 END) AS solicitudes_recibidas,
-          SUM(CASE WHEN (solicitante_id = ? OR receptor_id = ?) AND estado = 'completado' THEN 1 ELSE 0 END) AS trueques_realizados
-         FROM intercambios
-         WHERE activo = TRUE`,
-        [usuarioId, usuarioId, usuarioId, usuarioId]
+          SUM(comprehension_status = 'EN_CURSO') AS en_prestamo,
+          SUM(comprehension_status IN ('PENDIENTE_VALIDACION', 'VALIDADO')) AS devueltos
+         FROM reading_sessions
+         WHERE user_id = ?`,
+        [usuarioId]
       );
 
       const [bookCountRows] = await pool.execute(
@@ -491,21 +490,13 @@ const usuarioController = {
       );
 
       const [activityRows] = await pool.execute(
-        `SELECT i.id, i.estado, i.fecha_propuesta, i.fecha_respuesta, i.fecha_completado,
-                i.solicitante_id, i.receptor_id,
-                ls.titulo AS libro_solicitado,
-                lo.titulo AS libro_ofrecido,
-                us.nombre AS solicitante_nombre,
-                ur.nombre AS receptor_nombre
-         FROM intercambios i
-         JOIN libros ls ON i.libro_solicitado_id = ls.id
-         JOIN libros lo ON i.libro_ofrecido_id = lo.id
-         JOIN usuarios us ON i.solicitante_id = us.id
-         JOIN usuarios ur ON i.receptor_id = ur.id
-         WHERE i.activo = TRUE AND (i.solicitante_id = ? OR i.receptor_id = ?)
-         ORDER BY COALESCE(i.fecha_completado, i.fecha_respuesta, i.fecha_propuesta) DESC
+        `SELECT rs.id, rs.comprehension_status, rs.checked_out_at, rs.returned_at, l.titulo
+         FROM reading_sessions rs
+         JOIN libros l ON l.id = rs.book_id
+         WHERE rs.user_id = ?
+         ORDER BY COALESCE(rs.returned_at, rs.checked_out_at) DESC
          LIMIT 5`,
-        [usuarioId, usuarioId]
+        [usuarioId]
       );
 
       const stats = statsRows[0] || {};
@@ -517,34 +508,27 @@ const usuarioController = {
         imageUrl: buildUploadUrl(book.imagen_portada)
       }));
 
+      const readingLabels = {
+        EN_CURSO: (title) => `Tienes "${title}" en préstamo`,
+        PENDIENTE_VALIDACION: (title) => `Devolviste "${title}". Falta la conversación de cierre`,
+        VALIDADO: (title) => `Cerraste la lectura de "${title}"`,
+        OMITIDO: (title) => `La lectura de "${title}" quedó sin validar`
+      };
+      const readingIcons = {
+        EN_CURSO: 'menu_book',
+        PENDIENTE_VALIDACION: 'forum',
+        VALIDADO: 'verified',
+        OMITIDO: 'hourglass_disabled'
+      };
+
       const activities = activityRows.map((activity) => {
-        const isRequester = activity.solicitante_id === usuarioId;
-        const date = activity.fecha_completado || activity.fecha_respuesta || activity.fecha_propuesta;
-        const status = statusFromDb[activity.estado] || activity.estado;
-
-        const labels = {
-          pending: isRequester
-            ? `Enviaste una propuesta por "${activity.libro_solicitado}"`
-            : `Recibiste una propuesta de ${activity.solicitante_nombre}`,
-          accepted: `Propuesta aceptada para "${activity.libro_solicitado}"`,
-          rejected: `Propuesta rechazada para "${activity.libro_solicitado}"`,
-          cancelled: `Propuesta cancelada para "${activity.libro_solicitado}"`,
-          completed: `Trueque completado: "${activity.libro_solicitado}"`
-        };
-
-        const icons = {
-          pending: isRequester ? 'send' : 'inbox',
-          accepted: 'check_circle',
-          rejected: 'cancel',
-          cancelled: 'remove_circle',
-          completed: 'published_with_changes'
-        };
-
+        const status = activity.comprehension_status;
+        const label = readingLabels[status];
         return {
           id: activity.id,
-          message: labels[status] || `Movimiento en "${activity.libro_solicitado}"`,
-          time: formatRelativeTime(date),
-          icon: icons[status] || 'notifications',
+          message: label ? label(activity.titulo) : `Movimiento de "${activity.titulo}"`,
+          time: formatRelativeTime(activity.returned_at || activity.checked_out_at),
+          icon: readingIcons[status] || 'notifications',
           status
         };
       });
@@ -553,9 +537,8 @@ const usuarioController = {
         exito: true,
         data: {
           stats: {
-            propuestas: Number(stats.propuestas_enviadas || 0),
-            solicitudes: Number(stats.solicitudes_recibidas || 0),
-            truequesRealizados: Number(stats.trueques_realizados || 0),
+            enPrestamo: Number(stats.en_prestamo || 0),
+            devueltos: Number(stats.devueltos || 0),
             librosPublicados: Number(bookCountRows[0]?.libros_publicados || 0)
           },
           recentBooks,
@@ -575,31 +558,6 @@ const usuarioController = {
     try {
       const usuarioId = req.usuario.id;
 
-      const [exchangeRows] = await pool.execute(
-        `SELECT i.id, i.estado, i.fecha_propuesta, i.fecha_respuesta, i.fecha_completado,
-                i.solicitante_id, i.receptor_id,
-                ls.titulo AS libro_solicitado,
-                us.nombre AS solicitante_nombre
-         FROM intercambios i
-         JOIN libros ls ON i.libro_solicitado_id = ls.id
-         JOIN usuarios us ON i.solicitante_id = us.id
-         WHERE i.activo = TRUE AND (i.solicitante_id = ? OR i.receptor_id = ?)
-         ORDER BY COALESCE(i.fecha_completado, i.fecha_respuesta, i.fecha_propuesta) DESC
-         LIMIT 15`,
-        [usuarioId, usuarioId]
-      );
-
-      const fromExchanges = exchangeRows.map((row) => ({
-        id: `ex-${row.id}`,
-        tipo: statusFromDb[row.estado] || row.estado,
-        titulo: 'Propuesta de trueque',
-        mensaje: row.receptor_id === usuarioId
-          ? `${row.solicitante_nombre} envió una propuesta por "${row.libro_solicitado}"`
-          : `Tu propuesta por "${row.libro_solicitado}" está ${row.estado}`,
-        fecha: row.fecha_completado || row.fecha_respuesta || row.fecha_propuesta,
-        leida: true
-      }));
-
       let fromShelf = [];
       try {
         const shelfRows = await Notification.listForUser(usuarioId, 15);
@@ -615,7 +573,7 @@ const usuarioController = {
         console.warn('Notificaciones de estante no disponibles:', innerError.message);
       }
 
-      const notificaciones = [...fromShelf, ...fromExchanges]
+      const notificaciones = [...fromShelf]
         .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
         .slice(0, 25);
 
@@ -659,23 +617,20 @@ const usuarioController = {
         'conteos',
         `SELECT
            (SELECT COUNT(*) FROM usuarios WHERE rol = 'usuario' AND activo = TRUE) AS usuarios,
-           (SELECT COUNT(*) FROM libros WHERE activo = TRUE) AS libros,
-           (SELECT COUNT(*) FROM intercambios WHERE activo = TRUE AND estado = 'pendiente') AS propuestas,
-           (SELECT COUNT(*) FROM intercambios WHERE activo = TRUE AND estado = 'completado') AS trueques`
+           (SELECT COUNT(*) FROM libros WHERE activo = TRUE) AS libros`
       );
 
       const usuarios = await leer(
         'usuarios',
         `SELECT u.id, u.nombre, u.email, u.rol, u.activo, u.fecha_registro, u.ultima_conexion,
                 (SELECT COUNT(*) FROM libros l WHERE l.usuario_id = u.id AND l.activo = TRUE) AS libros,
-                (SELECT COUNT(*) FROM intercambios i
-                  WHERE i.activo = TRUE AND (i.solicitante_id = u.id OR i.receptor_id = u.id)) AS trueques
+                (SELECT COUNT(*) FROM reading_sessions rs WHERE rs.user_id = u.id) AS lecturas
          FROM usuarios u
          ORDER BY u.fecha_registro DESC`
       ) || await leer(
         'usuarios-simple',
         `SELECT id, nombre, email, rol, activo, fecha_registro, ultima_conexion,
-                0 AS libros, 0 AS trueques
+                0 AS libros, 0 AS lecturas
          FROM usuarios
          ORDER BY fecha_registro DESC`
       ) || [];
@@ -688,21 +643,6 @@ const usuarioController = {
          JOIN usuarios u ON u.id = l.usuario_id
          WHERE l.activo = TRUE
          ORDER BY l.fecha_publicacion DESC
-         LIMIT 40`
-      ) || [];
-
-      const intercambios = await leer(
-        'intercambios',
-        `SELECT i.id, i.estado, i.fecha_propuesta, i.fecha_respuesta, i.fecha_completado,
-                s.nombre AS solicitante, r.nombre AS receptor,
-                ls.titulo AS libro_solicitado, lo.titulo AS libro_ofrecido
-         FROM intercambios i
-         JOIN usuarios s ON s.id = i.solicitante_id
-         JOIN usuarios r ON r.id = i.receptor_id
-         JOIN libros ls ON ls.id = i.libro_solicitado_id
-         JOIN libros lo ON lo.id = i.libro_ofrecido_id
-         WHERE i.activo = TRUE
-         ORDER BY i.fecha_propuesta DESC
          LIMIT 40`
       ) || [];
 
@@ -749,37 +689,6 @@ const usuarioController = {
         });
       }
 
-      for (const intercambio of intercambios) {
-        actividades.push({
-          tipo: 'trueque',
-          texto: `${intercambio.solicitante} propuso "${intercambio.libro_ofrecido}" por "${intercambio.libro_solicitado}" a ${intercambio.receptor}`,
-          detalle: intercambio.estado,
-          fecha: intercambio.fecha_propuesta
-        });
-        if (intercambio.fecha_completado) {
-          actividades.push({
-            tipo: 'trueque',
-            texto: `${intercambio.solicitante} y ${intercambio.receptor} completaron el trueque de "${intercambio.libro_solicitado}"`,
-            detalle: 'completado',
-            fecha: intercambio.fecha_completado
-          });
-        } else if (intercambio.fecha_respuesta && intercambio.estado === 'aceptado') {
-          actividades.push({
-            tipo: 'trueque',
-            texto: `${intercambio.receptor} aceptó el trueque de "${intercambio.libro_solicitado}"`,
-            detalle: 'aceptado',
-            fecha: intercambio.fecha_respuesta
-          });
-        } else if (intercambio.fecha_respuesta && intercambio.estado === 'rechazado') {
-          actividades.push({
-            tipo: 'trueque',
-            texto: `${intercambio.receptor} rechazó la propuesta de ${intercambio.solicitante}`,
-            detalle: 'rechazado',
-            fecha: intercambio.fecha_respuesta
-          });
-        }
-      }
-
       const vistos = new Set();
       for (const aviso of avisosEstante) {
         const momento = new Date(aviso.fecha);
@@ -804,9 +713,7 @@ const usuarioController = {
         exito: true,
         resumen: {
           usuarios: Number(conteo.usuarios) || lectores.length,
-          libros: Number(conteo.libros) || libros.length,
-          propuestas: Number(conteo.propuestas) || intercambios.filter((item) => item.estado === 'pendiente').length,
-          trueques: Number(conteo.trueques) || intercambios.filter((item) => item.estado === 'completado').length
+          libros: Number(conteo.libros) || libros.length
         },
         actividades: actividades.slice(0, 40),
         usuarios: usuarios.map((usuario) => ({
@@ -816,7 +723,7 @@ const usuarioController = {
           rol: usuario.rol,
           activo: Boolean(usuario.activo),
           libros: Number(usuario.libros) || 0,
-          trueques: Number(usuario.trueques) || 0,
+          lecturas: Number(usuario.lecturas) || 0,
           fecha_registro: usuario.fecha_registro,
           ultima_conexion: usuario.ultima_conexion
         })),
@@ -827,15 +734,6 @@ const usuarioController = {
           estado: libro.estado_publicacion,
           fecha: libro.fecha_publicacion,
           dueno: libro.dueno
-        })),
-        intercambios: intercambios.map((intercambio) => ({
-          id: Number(intercambio.id),
-          estado: intercambio.estado,
-          fecha: intercambio.fecha_propuesta,
-          solicitante: intercambio.solicitante,
-          receptor: intercambio.receptor,
-          libroSolicitado: intercambio.libro_solicitado,
-          libroOfrecido: intercambio.libro_ofrecido
         }))
       });
     } catch (error) {

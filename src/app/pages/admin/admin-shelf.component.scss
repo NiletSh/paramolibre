@@ -1,14 +1,14 @@
 :host {
   display: block;
   min-height: calc(100vh - 72px);
-  background: #E9F2C9;
+  background: #F5EFE4;
 }
 
 .admin-page {
   max-width: 1180px;
   margin: 0 auto;
   padding: 28px 20px 48px;
-  color: #2f4f2f;
+  color: #352C25;
 }
 
 .admin-hero {
@@ -28,11 +28,11 @@
 .empty,
 .shelf-msg {
   margin: 0;
-  color: #5d6b3a;
+  color: #5E6844;
 }
 
 .admin-hero a {
-  color: #5d8b1f;
+  color: #8A3F2A;
   font-weight: 750;
   text-decoration: none;
   white-space: nowrap;
@@ -41,7 +41,7 @@
 .eyebrow {
   display: inline-block;
   margin-bottom: 8px;
-  color: #5d8b1f;
+  color: #8A3F2A;
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -51,7 +51,7 @@
 .panel,
 .shelf-live {
   background: rgba(255, 255, 255, 0.92);
-  border: 1px solid rgba(93, 139, 31, 0.18);
+  border: 1px solid rgba(138, 63, 42, 0.18);
   border-radius: 16px;
 }
 
@@ -75,13 +75,13 @@
 
 .shelf-live-head span,
 .shelf-meters span {
-  color: #6a7d3b;
+  color: #5E6844;
   font-size: 13px;
 }
 
 .shelf-live-head span.on,
 .shelf-meters b {
-  color: #3f6b16;
+  color: #8A3F2A;
   font-weight: 750;
 }
 
@@ -112,7 +112,7 @@
 }
 
 .tarjetas span {
-  color: #6a7d3b;
+  color: #5E6844;
   font-size: 12px;
 }
 
@@ -134,7 +134,7 @@
   justify-content: space-between;
   gap: 16px;
   padding: 10px 0;
-  border-top: 1px solid rgba(93, 139, 31, 0.14);
+  border-top: 1px solid rgba(138, 63, 42, 0.14);
 }
 
 .feed li:first-child {
@@ -147,7 +147,7 @@
 }
 
 .feed em {
-  color: #5d8b1f;
+  color: #8A3F2A;
   font-size: 11px;
   font-style: normal;
   font-weight: 800;
@@ -156,12 +156,12 @@
 }
 
 .feed b {
-  color: #2f4f2f;
+  color: #352C25;
 }
 
 .feed span,
 .feed time {
-  color: #6a7d3b;
+  color: #5E6844;
   font-size: 13px;
 }
 

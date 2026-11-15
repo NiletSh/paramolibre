@@ -24,7 +24,7 @@ export interface Book {
 export const SHELF_LOCATION = 'Estante Páramo Libre';
 
 export const SHELF_INSTRUCTIONS =
-  'Cuando el trueque sea aceptado, deposita y recoge los libros en el estante. Los sensores avisarán cuando alguien retire un libro.';
+  'Deposita y recoge los libros en el estante. Los sensores avisan cuando alguien retira o devuelve un libro.';
 
 /** Nombres alineados con la tabla `categorias` en MySQL (+ Otros sin fila dedicada). */
 export const BOOK_CATEGORIES: string[] = [

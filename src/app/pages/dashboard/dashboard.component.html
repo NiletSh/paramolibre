@@ -3,7 +3,7 @@
     <div class="hero-content">
       <span class="eyebrow">Mi espacio</span>
       <h1>Hola, {{ userName }}</h1>
-      <p>Administra tus libros, propuestas y trueques desde un solo lugar.</p>
+      <p>Aquí ves tus libros publicados y las lecturas que el estante ya registró.</p>
     </div>
 
     <a class="btn-new-book" routerLink="/publicar-libro">
@@ -97,11 +97,11 @@
             <span class="section-kicker">Movimiento</span>
             <h2>Actividad reciente</h2>
           </div>
-          <a routerLink="/mis-propuestas">Ver todo</a>
+          <a routerLink="/catalogo">Ver catálogo</a>
         </div>
 
         <div class="activity-empty" *ngIf="!loading && activities.length === 0">
-          <p>Cuando publiques un libro o envíes una propuesta, el movimiento queda aquí.</p>
+          <p>Cuando publiques un libro o el estante registre un préstamo, el movimiento queda aquí.</p>
         </div>
 
         <div class="activity-list" *ngIf="activities.length > 0">
@@ -120,8 +120,8 @@
       <section class="shelf-card">
         <span class="material-icons">inventory_2</span>
         <div>
-          <strong>El trueque se entrega en el estante</strong>
-          <p>Cuando aceptan un intercambio, los dos libros se dejan en {{ shelfLocation }}.</p>
+          <strong>El préstamo ocurre en el estante</strong>
+          <p>Retiras y devuelves los libros en {{ shelfLocation }}. El sensor abre y cierra la sesión de lectura.</p>
         </div>
       </section>
     </div>

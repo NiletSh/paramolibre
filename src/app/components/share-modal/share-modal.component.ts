@@ -17,7 +17,7 @@ import { environment } from '../../../environments/environment';
         </button>
 
         <h2 id="share-title">Compartir Páramo Libre</h2>
-        <p class="share-subtitle">Invita a más lectores a intercambiar libros de forma gratuita.</p>
+        <p class="share-subtitle">Invita a más lectores a la biblioteca.</p>
 
         <div class="qr-block">
           <img *ngIf="qrUrl; else qrLoading" [src]="qrUrl" width="200" height="200" alt="Código QR de Páramo Libre" class="qr-image" />
@@ -52,7 +52,7 @@ import { environment } from '../../../environments/environment';
       align-items: center;
       justify-content: center;
       padding: 24px;
-      background: rgba(47, 79, 47, 0.45);
+      background: rgba(53, 44, 37, 0.45);
       backdrop-filter: blur(4px);
       animation: fadeIn 0.2s ease-out;
     }
@@ -64,7 +64,7 @@ import { environment } from '../../../environments/environment';
       border: 1px solid rgba(123, 189, 47, 0.2);
       border-radius: 16px;
       background: #ffffff;
-      box-shadow: 0 24px 60px rgba(47, 79, 47, 0.18);
+      box-shadow: 0 24px 60px rgba(53, 44, 37, 0.18);
       text-align: center;
       animation: slideUp 0.25s ease-out;
     }
@@ -80,21 +80,21 @@ import { environment } from '../../../environments/environment';
       justify-content: center;
       border: 0;
       border-radius: 50%;
-      background: #f3f8e8;
-      color: #5d8b1f;
+      background: #F3EBDD;
+      color: #8A3F2A;
       cursor: pointer;
     }
 
     h2 {
       margin: 0 0 8px;
-      color: #2f4f2f;
+      color: #352C25;
       font-size: 22px;
       font-weight: 900;
     }
 
     .share-subtitle {
       margin: 0 0 24px;
-      color: #6a7d3b;
+      color: #5E6844;
       font-size: 14px;
       line-height: 1.5;
     }
@@ -121,13 +121,13 @@ import { environment } from '../../../environments/environment';
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #6a7d3b;
+      color: #5E6844;
       font-size: 13px;
       font-weight: 700;
     }
 
     .qr-hint {
-      color: #6a7d3b;
+      color: #5E6844;
       font-size: 12px;
       font-weight: 700;
     }
@@ -136,8 +136,8 @@ import { environment } from '../../../environments/environment';
       margin-bottom: 20px;
       padding: 10px 14px;
       border-radius: 8px;
-      background: #f8fdea;
-      color: #4b5d32;
+      background: #F5EFE4;
+      color: #5E6844;
       font-size: 13px;
       font-weight: 650;
       word-break: break-all;
@@ -169,12 +169,12 @@ import { environment } from '../../../environments/environment';
 
     .share-btn-primary {
       color: #ffffff;
-      background: linear-gradient(135deg, #7bbd2f 0%, #5d8b1f 100%);
+      background: linear-gradient(135deg, #A65338 0%, #8A3F2A 100%);
       box-shadow: 0 8px 20px rgba(123, 189, 47, 0.24);
     }
 
     .share-btn-secondary {
-      color: #2f4f2f;
+      color: #352C25;
       background: #ffffff;
       border: 1px solid rgba(123, 189, 47, 0.22);
     }
@@ -207,7 +207,7 @@ export class ShareModalComponent implements OnInit {
       width: 220,
       margin: 1,
       errorCorrectionLevel: 'M',
-      color: { dark: '#2f4f2f', light: '#ffffff' }
+      color: { dark: '#352C25', light: '#ffffff' }
     }).then((url) => {
       this.qrUrl = url;
     }).catch(() => {

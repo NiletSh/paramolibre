@@ -4,9 +4,8 @@ import { Observable, catchError, forkJoin, map, of, switchMap } from 'rxjs';
 import { environment } from '../../environments/environment';
 
 export interface DashboardStats {
-  propuestas: number;
-  solicitudes: number;
-  truequesRealizados: number;
+  enPrestamo: number;
+  devueltos: number;
   librosPublicados: number;
 }
 
@@ -37,18 +36,14 @@ export interface AdminOverview {
   resumen: {
     usuarios: number;
     libros: number;
-    propuestas: number;
-    trueques: number;
   };
   actividades: AdminActivityItem[];
   usuarios: AdminUserRow[];
   libros: AdminBookRow[];
-  intercambios: AdminExchangeRow[];
-  truequesDisponibles?: boolean;
 }
 
 export interface AdminActivityItem {
-  tipo: 'registro' | 'sesion' | 'libro' | 'trueque' | 'estante';
+  tipo: 'registro' | 'sesion' | 'libro' | 'estante';
   texto: string;
   detalle: string;
   fecha: string;
@@ -62,7 +57,7 @@ export interface AdminUserRow {
   rol: 'usuario' | 'admin';
   activo: boolean;
   libros: number;
-  trueques: number;
+  lecturas: number;
   fecha_registro: string;
   ultima_conexion: string | null;
 }
@@ -74,16 +69,6 @@ export interface AdminBookRow {
   estado: string;
   fecha: string;
   dueno: string;
-}
-
-export interface AdminExchangeRow {
-  id: number;
-  estado: string;
-  fecha: string;
-  solicitante: string;
-  receptor: string;
-  libroSolicitado: string;
-  libroOfrecido: string;
 }
 
 export interface AppNotification {
@@ -117,17 +102,17 @@ export class DashboardService {
 
   getAdminActivity(): Observable<AdminOverview> {
     return this.http.get<AdminOverview>(`${this.apiUrl}/activity`).pipe(
-      switchMap((data) => this.completarActividad(data, true)),
-      catchError(() => this.completarActividad(null, false))
+      switchMap((data) => this.completarActividad(data)),
+      catchError(() => this.completarActividad(null))
     );
   }
 
-  private completarActividad(data: AdminOverview | null, truequesDisponibles: boolean): Observable<AdminOverview> {
-    const base = data || this.vacio(truequesDisponibles);
+  private completarActividad(data: AdminOverview | null): Observable<AdminOverview> {
+    const base = data || this.vacio();
     const faltanLibros = !base.libros?.length;
     const faltanUsuarios = !base.usuarios?.length;
     if (!faltanLibros && !faltanUsuarios && (base.resumen.usuarios || base.resumen.libros)) {
-      return of({ ...base, truequesDisponibles });
+      return of(base);
     }
 
     return forkJoin({
@@ -139,27 +124,24 @@ export class DashboardService {
         catchError(() => of(null))
       )
     }).pipe(
-      map(({ books, users }) => this.mezclarCatalogo(base, books, users, truequesDisponibles))
+      map(({ books, users }) => this.mezclarCatalogo(base, books, users))
     );
   }
 
-  private vacio(truequesDisponibles: boolean): AdminOverview {
+  private vacio(): AdminOverview {
     return {
       exito: false,
-      resumen: { usuarios: 0, libros: 0, propuestas: 0, trueques: 0 },
+      resumen: { usuarios: 0, libros: 0 },
       actividades: [],
       usuarios: [],
-      libros: [],
-      intercambios: [],
-      truequesDisponibles
+      libros: []
     };
   }
 
   private mezclarCatalogo(
     base: AdminOverview,
     books: { data?: Array<Record<string, string | number | null>>; pagination?: { total?: number } } | null,
-    users: { usuarios?: Array<Record<string, string | number | boolean | null>> } | null,
-    truequesDisponibles: boolean
+    users: { usuarios?: Array<Record<string, string | number | boolean | null>> } | null
   ): AdminOverview {
     const filas = books?.data || [];
     const libros: AdminBookRow[] = base.libros?.length
@@ -184,7 +166,7 @@ export class DashboardService {
             rol: user['rol'] === 'admin' ? 'admin' : 'usuario',
             activo: user['activo'] === true || user['activo'] === 1,
             libros: libros.filter((book) => String(book.dueno) === String(user['nombre'] || '')).length,
-            trueques: 0,
+            lecturas: 0,
             fecha_registro: String(user['fecha_registro'] || ''),
             ultima_conexion: user['ultima_conexion'] ? String(user['ultima_conexion']) : null
           }))
@@ -216,15 +198,11 @@ export class DashboardService {
       exito: true,
       resumen: {
         usuarios: base.resumen.usuarios || lectores,
-        libros: base.resumen.libros || Number(books?.pagination?.total) || libros.length,
-        propuestas: base.resumen.propuestas || 0,
-        trueques: base.resumen.trueques || 0
+        libros: base.resumen.libros || Number(books?.pagination?.total) || libros.length
       },
       actividades,
       usuarios,
-      libros,
-      intercambios: base.intercambios || [],
-      truequesDisponibles
+      libros
     };
   }
 
@@ -246,7 +224,7 @@ export class DashboardService {
         rol: 'usuario',
         activo: true,
         libros: libros.filter((item) => item.dueno === nombre).length,
-        trueques: 0,
+        lecturas: 0,
         fecha_registro: String(book['createdAt'] || book['created_at'] || ''),
         ultima_conexion: null
       });

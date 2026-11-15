@@ -1,6 +1,5 @@
 const db = require('../config/db');
 const Book = require('../models/book.model');
-const Exchange = require('../models/exchange.model');
 const Notification = require('./notification.service');
 const { onBookPlaced, onBookRemoved } = require('./library40.service');
 
@@ -18,44 +17,12 @@ async function findBookIdByUid(uid) {
   return rows[0] ? Number(rows[0].libro_id) : null;
 }
 
-async function findAcceptedExchange(bookId) {
-  const [rows] = await db.execute(
-    `SELECT id, solicitante_id, receptor_id, libro_solicitado_id, libro_ofrecido_id
-     FROM intercambios
-     WHERE activo = TRUE
-       AND estado = 'aceptado'
-       AND (libro_solicitado_id = ? OR libro_ofrecido_id = ?)
-     ORDER BY fecha_respuesta DESC
-     LIMIT 1`,
-    [bookId, bookId]
-  );
-  return rows[0] || null;
-}
-
-async function findRecentCompletedExchange(bookId) {
-  const [rows] = await db.execute(
-    `SELECT id, solicitante_id, receptor_id, libro_solicitado_id, libro_ofrecido_id
-     FROM intercambios
-     WHERE activo = TRUE
-       AND estado = 'completado'
-       AND fecha_completado > (NOW() - INTERVAL 1 DAY)
-       AND (libro_solicitado_id = ? OR libro_ofrecido_id = ?)
-     ORDER BY fecha_completado DESC
-     LIMIT 1`,
-    [bookId, bookId]
-  );
-  return rows[0] || null;
-}
-
-async function notifyRemoval(book, exchange) {
+async function notifyRemoval(book, readerId) {
   const title = book.title || 'Libro';
   const ownerId = Number(book.user_id || book.ownerId);
   const people = new Set();
   if (ownerId) people.add(ownerId);
-  if (exchange) {
-    if (exchange.solicitante_id) people.add(Number(exchange.solicitante_id));
-    if (exchange.receptor_id) people.add(Number(exchange.receptor_id));
-  }
+  if (readerId) people.add(Number(readerId));
 
   for (const userId of people) {
     if (!userId) continue;
@@ -64,11 +31,10 @@ async function notifyRemoval(book, exchange) {
       await Notification.createNotification({
         userId,
         tipo: 'libro_retirado',
-        titulo: 'Libro retirado',
+        titulo: 'Libro en préstamo',
         mensaje: esDueno
-          ? `Tu libro "${title}" fue retirado del estante con éxito.`
-          : `Retiraste "${title}" del estante con éxito.`,
-        exchangeId: exchange?.id || null,
+          ? `Tu libro "${title}" salió del estante.`
+          : `Retiraste "${title}" del estante. Tu sesión de lectura quedó abierta.`,
         bookId: Number(book.id)
       });
     } catch (error) {
@@ -146,17 +112,6 @@ function resolveSlot(shelfSlotLocation, slotIndex) {
   return `Modulo-${moduleName}-Nivel-${level}`;
 }
 
-function readerIdFromExchange(exchange, bookId) {
-  if (!exchange) return null;
-  if (Number(exchange.libro_solicitado_id) === Number(bookId)) {
-    return Number(exchange.solicitante_id) || null;
-  }
-  if (Number(exchange.libro_ofrecido_id) === Number(bookId)) {
-    return Number(exchange.receptor_id) || null;
-  }
-  return null;
-}
-
 async function safeReturn(bookId, shelfSlotLocation, slotIndex, uid) {
   const slot = resolveSlot(shelfSlotLocation, slotIndex) || 'Modulo-A-Nivel-1';
   try {
@@ -171,8 +126,8 @@ async function safeReturn(bookId, shelfSlotLocation, slotIndex, uid) {
   return slot;
 }
 
-async function safeCheckout(bookId, exchange, explicitUserId) {
-  const readerId = readerIdFromExchange(exchange, bookId) || Number(explicitUserId) || null;
+async function safeCheckout(bookId, explicitUserId) {
+  const readerId = Number(explicitUserId) || null;
   if (!readerId) return;
   try {
     await onBookRemoved({ bookId, userId: readerId });
@@ -228,96 +183,44 @@ async function handleShelfReading({ bookId, uid, event, weight, shelfSlotLocatio
   }
 
   const title = book.title || 'Libro';
-  const exchange = await findAcceptedExchange(resolvedBookId);
+  const readerId = Number(userId) || null;
 
   if (normalizedEvent === 'placed') {
-    const correct = Boolean(exchange);
     await notifyEveryone({
       tipo: 'estante_deposito',
-      titulo: 'Libro en el estante',
-      mensaje: `Se colocó "${title}" en el estante.`,
-      exchangeId: exchange?.id || null,
+      titulo: 'Libro devuelto',
+      mensaje: `"${title}" volvió al estante.`,
       bookId: resolvedBookId
     });
     const slot = await safeReturn(resolvedBookId, shelfSlotLocation, slotIndex, cleanUid);
     return {
       type: 'shelf',
-      result: correct ? 'placed' : 'wrong',
-      correct,
-      uid: cleanUid,
-      bookId: resolvedBookId,
-      exchangeId: exchange?.id || null,
-      title,
-      weight: weight ?? null,
-      shelf_slot_location: slot,
-      message: correct
-        ? `"${title}" se colocó en el estante. Es un libro del trueque.`
-        : `"${title}" se colocó, pero no corresponde a un trueque aceptado.`
-    };
-  }
-
-  if (exchange) {
-    await Exchange.updateStatus(exchange.id, 'completed');
-    await Book.updateStatus(exchange.libro_solicitado_id, 'exchanged');
-    await Book.updateStatus(exchange.libro_ofrecido_id, 'exchanged');
-    await notifyRemoval(book, exchange);
-    await safeCheckout(resolvedBookId, exchange, userId);
-    return {
-      type: 'shelf',
-      result: 'completed',
-      correct: true,
-      uid: cleanUid,
-      bookId: resolvedBookId,
-      exchangeId: exchange.id,
-      title,
-      weight: weight ?? null,
-      message: `Trueque realizado con éxito. Se retiró el libro correcto: "${title}".`
-    };
-  }
-
-  const recent = await findRecentCompletedExchange(resolvedBookId);
-  if (recent) {
-    await notifyRemoval(book, recent);
-    await safeCheckout(resolvedBookId, recent, userId);
-    return {
-      type: 'shelf',
-      result: 'completed',
-      correct: true,
-      uid: cleanUid,
-      bookId: resolvedBookId,
-      exchangeId: recent.id,
-      title,
-      weight: weight ?? null,
-      message: `Retiro correcto: "${title}" ya formaba parte del trueque.`
-    };
-  }
-
-  if (Number(userId)) {
-    await safeCheckout(resolvedBookId, null, userId);
-    return {
-      type: 'shelf',
-      result: 'loan',
+      result: 'placed',
       correct: true,
       uid: cleanUid,
       bookId: resolvedBookId,
       exchangeId: null,
       title,
       weight: weight ?? null,
-      message: `"${title}" salió en préstamo. La sesión de lectura quedó abierta.`
+      shelf_slot_location: slot,
+      message: `"${title}" se devolvió al estante.`
     };
   }
 
-  await notifyRemoval(book, null);
+  await notifyRemoval(book, readerId);
+  await safeCheckout(resolvedBookId, readerId);
   return {
     type: 'shelf',
-    result: 'wrong',
-    correct: false,
+    result: 'loan',
+    correct: true,
     uid: cleanUid,
     bookId: resolvedBookId,
     exchangeId: null,
     title,
     weight: weight ?? null,
-    message: `Ese no es el libro del trueque. "${title}" no tiene un trueque aceptado.`
+    message: readerId
+      ? `"${title}" salió en préstamo. La sesión de lectura quedó abierta.`
+      : `"${title}" salió del estante.`
   };
 }
 

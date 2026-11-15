@@ -10,7 +10,7 @@ import { filter } from 'rxjs';
   template: `
     <footer class="footer" *ngIf="!hideFooter">
       <div class="footer-inner">
-        <span class="footer-copy">© 2026 Páramo Libre. Plataforma de intercambio de libros.</span>
+        <span class="footer-copy">© 2026 Páramo Libre. Biblioteca inteligente.</span>
       </div>
     </footer>
   `,
@@ -30,7 +30,7 @@ import { filter } from 'rxjs';
     }
 
     .footer-copy {
-      color: #6a7d3b;
+      color: #5E6844;
       font-size: 13px;
       text-align: center;
     }
@@ -58,8 +58,6 @@ export class FooterComponent {
     const path = url.split('?')[0];
     return path === '/' || path.startsWith('/auth')
       || path.startsWith('/publicar')
-      || path.startsWith('/propuestas')
-      || path.startsWith('/mis-propuestas')
       || path.endsWith('/editar')
       || /^\/libro\/[^/]+$/.test(path);
   }

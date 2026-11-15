@@ -5,8 +5,6 @@ import { AuthGuard } from './guards/auth.guard';
 import { AdminGuard } from './guards/admin.guard';
 import { ReaderGuard } from './guards/reader.guard';
 import { BookFormComponent } from './pages/books/book-form/book-form';
-import { ExchangeProposalComponent } from './pages/exchange-proposal/exchange-proposal.component';
-import { MyProposalsComponent } from './pages/my-proposals/my-proposals.component';
 import { PerfilComponent } from './pages/perfil/perfil.component';
 import { AdminComponent } from './pages/admin/admin.component';
 import { AdminShelfComponent } from './pages/admin/admin-shelf.component';
@@ -63,23 +61,23 @@ export const routes: Routes = [
       },
       {
         path: 'intercambios',
-        redirectTo: 'mis-propuestas',
+        redirectTo: 'catalogo',
         pathMatch: 'full'
       },
       {
         path: 'intercambio/:bookId',
-        component: ExchangeProposalComponent,
-        canActivate: [AuthGuard, ReaderGuard]
+        redirectTo: 'libro/:bookId',
+        pathMatch: 'full'
       },
       {
         path: 'mis-propuestas',
-        component: MyProposalsComponent,
-        canActivate: [AuthGuard, ReaderGuard]
+        redirectTo: 'dashboard',
+        pathMatch: 'full'
       },
       {
         path: 'propuestas',
-        component: MyProposalsComponent,
-        canActivate: [AuthGuard, ReaderGuard]
+        redirectTo: 'dashboard',
+        pathMatch: 'full'
       },
       {
         path: 'perfil',

@@ -21,10 +21,9 @@ export class DashboardComponent implements OnInit {
   readonly shelfLocation = SHELF_LOCATION;
 
   stats = [
-    { label: 'Propuestas', value: 0, icon: 'send', tone: 'green', link: '/mis-propuestas' },
-    { label: 'Solicitudes', value: 0, icon: 'mark_email_unread', tone: 'gold', link: '/mis-propuestas' },
-    { label: 'Trueques realizados', value: 0, icon: 'published_with_changes', tone: 'forest', link: '/mis-propuestas' },
-    { label: 'Libros publicados', value: 0, icon: 'library_books', tone: 'leaf', link: '/catalogo' }
+    { label: 'Libros publicados', value: 0, icon: 'library_books', tone: 'green', link: '/catalogo' },
+    { label: 'En préstamo', value: 0, icon: 'menu_book', tone: 'gold', link: '/dashboard' },
+    { label: 'Devueltos', value: 0, icon: 'inventory_2', tone: 'forest', link: '/dashboard' }
   ];
 
   recentBooks: Array<DashboardBook & { cover: string }> = [];
@@ -33,7 +32,7 @@ export class DashboardComponent implements OnInit {
   quickActions = [
     { label: 'Publicar libro', description: 'Agrega un titulo disponible', icon: 'add_circle', link: '/publicar-libro', tone: 'publish' },
     { label: 'Explorar catalogo', description: 'Encuentra tu siguiente lectura', icon: 'explore', link: '/catalogo', tone: 'catalog' },
-    { label: 'Ver propuestas', description: 'Da seguimiento a tus trueques', icon: 'swap_horiz', link: '/mis-propuestas', tone: 'proposals' },
+    { label: 'Ver el estante', description: 'Ahí se prestan y se devuelven los libros', icon: 'inventory_2', link: '/catalogo', tone: 'proposals' },
     { label: 'Editar perfil', description: 'Actualiza tus datos', icon: 'manage_accounts', link: '/perfil', tone: 'profile' }
   ];
 
@@ -68,7 +67,7 @@ export class DashboardComponent implements OnInit {
   getStatusLabel(status: string): string {
     const labels: Record<string, string> = {
       available: 'Disponible',
-      exchanged: 'Intercambiado',
+      exchanged: 'Prestado',
       reserved: 'Reservado'
     };
     return labels[status] || status;
@@ -79,10 +78,9 @@ export class DashboardComponent implements OnInit {
     this.dashboardService.getDashboard().subscribe({
       next: (data) => {
         this.stats = [
-          { ...this.stats[0], value: data.stats.propuestas },
-          { ...this.stats[1], value: data.stats.solicitudes },
-          { ...this.stats[2], value: data.stats.truequesRealizados },
-          { ...this.stats[3], value: data.stats.librosPublicados }
+          { ...this.stats[0], value: data.stats.librosPublicados },
+          { ...this.stats[1], value: data.stats.enPrestamo },
+          { ...this.stats[2], value: data.stats.devueltos }
         ];
         this.activities = data.activities;
         this.loading = false;
@@ -125,9 +123,9 @@ export class DashboardComponent implements OnInit {
     }
 
     const covers = [
-      'linear-gradient(135deg, #2f4f2f 0%, #7bbd2f 100%)',
-      'linear-gradient(135deg, #5d8b1f 0%, #d58a14 100%)',
-      'linear-gradient(135deg, #233b2d 0%, #6c8c4e 100%)'
+      'linear-gradient(135deg, #352C25 0%, #A65338 100%)',
+      'linear-gradient(135deg, #8A3F2A 0%, #d58a14 100%)',
+      'linear-gradient(135deg, #241E1A 0%, #68734A 100%)'
     ];
     return covers[index % covers.length];
   }

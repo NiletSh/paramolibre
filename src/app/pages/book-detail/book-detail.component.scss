@@ -6,19 +6,19 @@
   display: block;
   height: calc(100vh - 72px);
   overflow: hidden;
-  background: #E9F2C9;
+  background: #F5EFE4;
 }
 
 .book-detail {
   background: transparent !important;
-  color: #2f4f2f !important;
+  color: #352C25 !important;
 }
 
 .book-title,
 .owner-name,
 .detail-title,
 .detail-value {
-  color: #2f4f2f !important;
+  color: #352C25 !important;
 }
 
 .book-author,
@@ -27,7 +27,7 @@
 .detail-label,
 .detail-meta,
 .not-found p {
-  color: #6a7d3b !important;
+  color: #5E6844 !important;
 }
 
 .owner-card,
@@ -36,14 +36,14 @@
 .proposal-card {
   background: rgba(255, 255, 255, 0.95) !important;
   border: 1px solid rgba(123, 189, 47, 0.16) !important;
-  box-shadow: 0 12px 30px rgba(47, 79, 47, 0.08) !important;
+  box-shadow: 0 12px 30px rgba(53, 44, 37, 0.08) !important;
 }
 
 .badge-category,
 .btn-primary,
 .btn-secondary,
 .proposal-btn {
-  background: linear-gradient(135deg, #7bbd2f 0%, #5d8b1f 100%) !important;
+  background: linear-gradient(135deg, #A65338 0%, #8A3F2A 100%) !important;
   color: #ffffff !important;
 }
 
@@ -81,14 +81,14 @@
 
 .not-found .material-icons {
   font-size: 72px;
-  color: #5d8b1f;
+  color: #8A3F2A;
   margin-bottom: 24px;
 }
 
 .not-found h2 {
   font-size: 28px;
   font-weight: 800;
-  color: #2f4f2f;
+  color: #352C25;
   margin: 0 0 8px;
 }
 
@@ -170,7 +170,7 @@
 .owner-avatar {
   width: 52px;
   height: 52px;
-  background: linear-gradient(135deg, #7bbd2f 0%, #5d8b1f 100%);
+  background: linear-gradient(135deg, #A65338 0%, #8A3F2A 100%);
   border-radius: 14px;
   display: flex;
   align-items: center;
@@ -233,7 +233,7 @@
 .badge-category {
   padding: 6px 14px;
   background: rgba(123, 189, 47, 0.12);
-  color: #5d8b1f;
+  color: #8A3F2A;
   font-size: 12px;
   font-weight: 700;
   border-radius: 8px;
@@ -251,7 +251,7 @@
 .book-title {
   font-size: 32px;
   font-weight: 800;
-  color: #2f4f2f;
+  color: #352C25;
   margin: 0 0 8px;
   line-height: 1.15;
   letter-spacing: -1px;
@@ -259,7 +259,7 @@
 
 .book-author {
   font-size: 17px;
-  color: #6a7d3b;
+  color: #5E6844;
   margin: 0;
   font-weight: 500;
 }
@@ -290,7 +290,7 @@
 }
 
 .detail-section h3 {
-  color: #6a7d3b;
+  color: #5E6844;
 }
 
 /* Grid de detalles */
@@ -329,7 +329,7 @@
 
 .detail-icon .material-icons {
   font-size: 22px;
-  color: #5d8b1f;
+  color: #8A3F2A;
 }
 
 .detail-item div {
@@ -340,14 +340,14 @@
 
 .detail-label {
   font-size: 12px;
-  color: #6a7d3b;
+  color: #5E6844;
   font-weight: 500;
 }
 
 .detail-value {
   font-size: 15px;
   font-weight: 700;
-  color: #2f4f2f;
+  color: #352C25;
 }
 
 .trade-guide {
@@ -365,7 +365,7 @@
   border: 1px solid rgba(123, 189, 47, 0.16);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 12px 28px rgba(47, 79, 47, 0.06);
+  box-shadow: 0 12px 28px rgba(53, 44, 37, 0.06);
 }
 
 .guide-item .material-icons {
@@ -376,7 +376,7 @@
   height: 38px;
   border-radius: 8px;
   background: rgba(123, 189, 47, 0.14);
-  color: #5d8b1f;
+  color: #8A3F2A;
   font-size: 20px;
   flex: 0 0 auto;
 }
@@ -384,13 +384,13 @@
 .guide-item strong {
   display: block;
   margin-bottom: 4px;
-  color: #2f4f2f;
+  color: #352C25;
   font-size: 14px;
 }
 
 .guide-item p {
   margin: 0;
-  color: #6a7d3b;
+  color: #5E6844;
   font-size: 13px;
   line-height: 1.5;
 }
@@ -467,7 +467,7 @@
   .rfid-row button {
     min-height: 44px;
     height: auto;
-    background: linear-gradient(135deg, #7bbd2f, #5d8b1f);
+    background: linear-gradient(135deg, #A65338, #8A3F2A);
     font-size: 15px;
   }
 
@@ -497,7 +497,7 @@
 }
 
 .rfid-row label {
-  color: #2f4f2f;
+  color: #352C25;
   font-size: 13px;
   font-weight: 750;
   white-space: nowrap;
@@ -506,7 +506,7 @@
 .rfid-row input {
   width: 160px;
   height: 36px;
-  border: 1.5px solid rgba(93, 139, 31, 0.35);
+  border: 1.5px solid rgba(138, 63, 42, 0.35);
   border-radius: 18px;
   padding: 0 12px;
   color: #24381f;
@@ -519,19 +519,19 @@
   border-radius: 18px;
   padding: 0 14px;
   color: #ffffff;
-  background: linear-gradient(135deg, #7bbd2f, #5d8b1f);
+  background: linear-gradient(135deg, #A65338, #8A3F2A);
   font-weight: 700;
   cursor: pointer;
 }
 
 .rfid-locked {
-  color: #2f4f2f;
+  color: #352C25;
   font-weight: 800;
   letter-spacing: 0.04em;
 }
 
 .rfid-note {
-  color: #5d8b1f;
+  color: #8A3F2A;
   font-size: 13px;
   font-weight: 700;
 }
@@ -552,7 +552,7 @@
   font-size: 15px;
   font-weight: 700;
   color: #ffffff;
-  background: linear-gradient(135deg, #7bbd2f 0%, #5d8b1f 100%);
+  background: linear-gradient(135deg, #A65338 0%, #8A3F2A 100%);
   border: none;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -567,7 +567,7 @@
 
 .btn-login-required {
   background: #ffffff;
-  color: #2f4f2f;
+  color: #352C25;
   border: 1px solid rgba(123, 189, 47, 0.22);
   box-shadow: none;
 }
@@ -591,7 +591,7 @@
   border-radius: 22px;
   font-size: 15px;
   font-weight: 600;
-  color: #4b5d32;
+  color: #5E6844;
   background: rgba(255, 255, 255, 0.9);
   border: 1.5px solid rgba(123, 189, 47, 0.2);
   cursor: pointer;
@@ -601,7 +601,7 @@
 
 .btn-back-secondary:hover {
   background: #ffffff;
-  color: #2f4f2f;
+  color: #352C25;
 }
 
 .btn-back-secondary .material-icons {
@@ -617,7 +617,7 @@
   font-size: 15px;
   font-weight: 600;
   color: #ffffff;
-  background: linear-gradient(135deg, #7bbd2f 0%, #5d8b1f 100%);
+  background: linear-gradient(135deg, #A65338 0%, #8A3F2A 100%);
   border: none;
   border-radius: 12px;
   cursor: pointer;
@@ -626,7 +626,7 @@
 
 .btn-back:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(93, 139, 31, 0.35);
+  box-shadow: 0 4px 16px rgba(138, 63, 42, 0.35);
 }
 
 /* ============================================

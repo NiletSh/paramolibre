@@ -9,7 +9,7 @@ export interface Perfil {
   fotoUrl?: string;
   fechaRegistro: string;
   librosPublicados: number;
-  intercambiosCompletados: number;
+  lecturasValidadas: number;
 }
 
 export interface ChangePasswordRequest {

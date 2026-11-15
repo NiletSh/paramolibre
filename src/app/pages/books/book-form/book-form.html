@@ -8,7 +8,7 @@
       </button>
       <div class="header-title">
         <h1>{{ isEditMode ? 'Editar libro' : 'Publicar libro' }}</h1>
-        <span>{{ isEditMode ? 'Actualiza la informacion guardada en tu publicacion' : 'Comparte un libro disponible para trueque' }}</span>
+        <span>{{ isEditMode ? 'Actualiza la informacion guardada en tu publicacion' : 'Comparte un libro disponible en la biblioteca' }}</span>
       </div>
       <div class="header-spacer"></div>
     </div>
@@ -103,13 +103,13 @@
               <mat-icon>inventory_2</mat-icon>
               <div>
                 <strong>Entrega en el estante</strong>
-                <span>Todos los libros se intercambian en <em>{{ shelfLocation }}</em>.</span>
+                <span>Todos los libros se prestan y se devuelven en <em>{{ shelfLocation }}</em>.</span>
               </div>
             </div>
 
             <label class="input-label" for="book-description">Descripción</label>
             <mat-form-field appearance="outline" class="w-100 textarea-field">
-              <textarea id="book-description" matInput formControlName="description" rows="2" placeholder="Describe el libro, su estado, edición y qué tipo de trueque buscas..."></textarea>
+              <textarea id="book-description" matInput formControlName="description" rows="2" placeholder="Describe el libro, su estado y la edición..."></textarea>
               <mat-hint align="end" class="hint-count">{{ (bookForm.get('description')?.value || '').length }}/1000</mat-hint>
               <mat-error *ngIf="bookForm.get('description')?.invalid">Mínimo 20 caracteres</mat-error>
             </mat-form-field>
@@ -117,8 +117,8 @@
             <div class="trade-note">
               <mat-icon>info</mat-icon>
               <div>
-                <strong>Trueque seguro</strong>
-                <span>Publica solo libros disponibles para intercambio. Tras aceptar un trueque, llévalos al estante comunitario.</span>
+                <strong>Listo para el estante</strong>
+                <span>Publica el libro y déjalo en el estante. El sensor avisa cuando alguien lo retira o lo devuelve.</span>
               </div>
             </div>
           </div>

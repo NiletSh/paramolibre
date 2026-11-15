@@ -27,7 +27,6 @@ import { ShelfLiveService } from '../../services/shelf-live.service';
           <ng-container *ngIf="isLoggedIn && !isAdmin">
             <a class="nav-link" routerLink="/catalogo" routerLinkActive="active">Cat&aacute;logo</a>
             <a class="nav-link" routerLink="/publicar-libro" routerLinkActive="active">Publicar libro</a>
-            <a class="nav-link" routerLink="/mis-propuestas" routerLinkActive="active">Propuestas</a>
             <a class="nav-link" routerLink="/dashboard" routerLinkActive="active">Mi espacio</a>
             <a class="nav-link" routerLink="/perfil" routerLinkActive="active">Perfil</a>
           </ng-container>
@@ -58,7 +57,7 @@ import { ShelfLiveService } from '../../services/shelf-live.service';
               <div class="alert-empty-state" *ngIf="!notifications.length">
                 <span class="material-icons" aria-hidden="true">inbox</span>
                 <p>Sin avisos por ahora</p>
-                <small>Te avisamos cuando haya propuestas, trueques o movimientos en el estante.</small>
+                <small>Te avisamos cuando un libro entre o salga del estante.</small>
               </div>
               <ul class="alert-list" *ngIf="notifications.length">
                 <li *ngFor="let item of notifications">
@@ -105,7 +104,6 @@ import { ShelfLiveService } from '../../services/shelf-live.service';
         <ng-container *ngIf="isLoggedIn && !isAdmin">
           <a class="mobile-link" routerLink="/catalogo" (click)="closeMenu()" routerLinkActive="active">Cat&aacute;logo</a>
           <a class="mobile-link" routerLink="/publicar-libro" (click)="closeMenu()" routerLinkActive="active">Publicar libro</a>
-          <a class="mobile-link" routerLink="/mis-propuestas" (click)="closeMenu()" routerLinkActive="active">Propuestas</a>
           <a class="mobile-link" routerLink="/dashboard" (click)="closeMenu()" routerLinkActive="active">Mi espacio</a>
           <a class="mobile-link" routerLink="/perfil" (click)="closeMenu()" routerLinkActive="active">Perfil</a>
         </ng-container>
@@ -156,16 +154,16 @@ import { ShelfLiveService } from '../../services/shelf-live.service';
       justify-content: center;
       border: 0;
       border-radius: 50%;
-      background: linear-gradient(145deg, #ffffff, #f3f8ea);
-      color: #2f4f2f;
+      background: linear-gradient(145deg, #ffffff, #F3EBDD);
+      color: #352C25;
       cursor: pointer;
-      box-shadow: 0 0 0 1px rgba(93, 139, 31, 0.22), 0 8px 18px rgba(47, 79, 47, 0.08);
+      box-shadow: 0 0 0 1px rgba(138, 63, 42, 0.22), 0 8px 18px rgba(53, 44, 37, 0.08);
       transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
 
     .alert-button:hover {
       transform: translateY(-1px);
-      box-shadow: 0 0 0 1px rgba(93, 139, 31, 0.32), 0 12px 22px rgba(47, 79, 47, 0.12);
+      box-shadow: 0 0 0 1px rgba(138, 63, 42, 0.32), 0 12px 22px rgba(53, 44, 37, 0.12);
     }
 
     .alert-button .material-icons {
@@ -197,9 +195,9 @@ import { ShelfLiveService } from '../../services/shelf-live.service';
       flex-direction: column;
       overflow: hidden;
       border-radius: 18px;
-      background: linear-gradient(180deg, #ffffff 0%, #f8fdea 100%);
+      background: linear-gradient(180deg, #ffffff 0%, #F5EFE4 100%);
       border: 1px solid rgba(123, 189, 47, 0.24);
-      box-shadow: 0 22px 48px rgba(47, 79, 47, 0.18);
+      box-shadow: 0 22px 48px rgba(53, 44, 37, 0.18);
     }
 
     .alert-panel-head {
@@ -224,14 +222,14 @@ import { ShelfLiveService } from '../../services/shelf-live.service';
       align-items: center;
       justify-content: center;
       border-radius: 12px;
-      color: #5d8b1f;
+      color: #8A3F2A;
       background: rgba(123, 189, 47, 0.14);
       font-size: 20px;
     }
 
     .alert-panel-title strong {
       display: block;
-      color: #2f4f2f;
+      color: #352C25;
       font-size: 15px;
       line-height: 1.2;
     }
@@ -239,7 +237,7 @@ import { ShelfLiveService } from '../../services/shelf-live.service';
     .alert-panel-sub {
       display: block;
       margin-top: 2px;
-      color: #6a7d3b;
+      color: #5E6844;
       font-size: 12px;
       font-weight: 650;
     }
@@ -250,7 +248,7 @@ import { ShelfLiveService } from '../../services/shelf-live.service';
       overflow-y: auto;
       padding: 10px;
       scrollbar-width: thin;
-      scrollbar-color: rgba(93, 139, 31, 0.45) transparent;
+      scrollbar-color: rgba(138, 63, 42, 0.45) transparent;
     }
 
     .alert-empty-state {
@@ -264,13 +262,13 @@ import { ShelfLiveService } from '../../services/shelf-live.service';
 
     .alert-empty-state .material-icons {
       font-size: 36px;
-      color: #7bbd2f;
+      color: #A65338;
       opacity: 0.85;
     }
 
     .alert-empty-state p {
       margin: 0;
-      color: #2f4f2f;
+      color: #352C25;
       font-size: 14px;
       font-weight: 800;
     }
@@ -278,7 +276,7 @@ import { ShelfLiveService } from '../../services/shelf-live.service';
     .alert-empty-state small {
       margin: 0;
       max-width: 260px;
-      color: #6a7d3b;
+      color: #5E6844;
       font-size: 12px;
       line-height: 1.45;
     }
@@ -304,8 +302,8 @@ import { ShelfLiveService } from '../../services/shelf-live.service';
 
     .alert-card--unread {
       border-color: rgba(123, 189, 47, 0.34);
-      box-shadow: inset 3px 0 0 #7bbd2f;
-      background: #f3f8ea;
+      box-shadow: inset 3px 0 0 #A65338;
+      background: #F3EBDD;
     }
 
     .alert-icon {
@@ -316,7 +314,7 @@ import { ShelfLiveService } from '../../services/shelf-live.service';
       justify-content: center;
       border-radius: 12px;
       background: rgba(123, 189, 47, 0.14);
-      color: #5d8b1f;
+      color: #8A3F2A;
     }
 
     .alert-icon .material-icons {
@@ -330,12 +328,12 @@ import { ShelfLiveService } from '../../services/shelf-live.service';
 
     .alert-card--shelf .alert-icon {
       background: rgba(61, 107, 79, 0.14);
-      color: #2f4f2f;
+      color: #352C25;
     }
 
     .alert-card--success .alert-icon {
       background: rgba(79, 125, 42, 0.16);
-      color: #4f7d2a;
+      color: #55603C;
     }
 
     .alert-card--alert .alert-icon {
@@ -351,14 +349,14 @@ import { ShelfLiveService } from '../../services/shelf-live.service';
     }
 
     .alert-meta b {
-      color: #2f4f2f;
+      color: #352C25;
       font-size: 13px;
       line-height: 1.25;
     }
 
     .alert-meta time {
       flex-shrink: 0;
-      color: #8a9a62;
+      color: #68734A;
       font-size: 11px;
       font-weight: 700;
       white-space: nowrap;
@@ -366,7 +364,7 @@ import { ShelfLiveService } from '../../services/shelf-live.service';
 
     .alert-copy p {
       margin: 4px 0 0;
-      color: #4b5d32;
+      color: #5E6844;
       font-size: 12.5px;
       line-height: 1.45;
     }
@@ -376,7 +374,7 @@ import { ShelfLiveService } from '../../services/shelf-live.service';
       display: flex;
       align-items: center;
       gap: 10px;
-      color: #2f4f2f;
+      color: #352C25;
       font-weight: 700;
       text-decoration: none;
     }
@@ -393,7 +391,7 @@ import { ShelfLiveService } from '../../services/shelf-live.service';
     }
 
     .home-bar .nav-link {
-      color: #2c3328;
+      color: #352C25;
     }
 
     .home-bar .nav-link:hover,
@@ -413,7 +411,7 @@ import { ShelfLiveService } from '../../services/shelf-live.service';
     .nav-link {
       padding: 8px 12px;
       border-radius: 999px;
-      color: #4d5d3a;
+      color: #5E6844;
       font-size: 14px;
       font-weight: 700;
       text-decoration: none;
@@ -423,15 +421,15 @@ import { ShelfLiveService } from '../../services/shelf-live.service';
 
     .nav-link:hover,
     .nav-link.active {
-      color: #5d8b1f;
+      color: #8A3F2A;
       background: rgba(128, 199, 64, 0.12);
     }
 
     .nav-link-register,
     .mobile-register {
       color: #ffffff !important;
-      background: linear-gradient(135deg, #7bbd2f 0%, #5d8b1f 100%) !important;
-      box-shadow: 0 8px 20px rgba(93, 139, 31, 0.16);
+      background: linear-gradient(135deg, #A65338 0%, #8A3F2A 100%) !important;
+      box-shadow: 0 8px 20px rgba(138, 63, 42, 0.16);
     }
 
     .nav-avatar {
@@ -446,8 +444,8 @@ import { ShelfLiveService } from '../../services/shelf-live.service';
       overflow: hidden;
       border-radius: 50%;
       border: 2px solid #ffffff;
-      box-shadow: 0 0 0 2px rgba(93, 139, 31, 0.45);
-      background: linear-gradient(135deg, #7bbd2f 0%, #5d8b1f 100%);
+      box-shadow: 0 0 0 2px rgba(138, 63, 42, 0.45);
+      background: linear-gradient(135deg, #A65338 0%, #8A3F2A 100%);
       color: #ffffff;
       font-size: 14px;
       font-weight: 800;
@@ -476,7 +474,7 @@ import { ShelfLiveService } from '../../services/shelf-live.service';
       height: 2px;
       display: block;
       border-radius: 2px;
-      background: #2f4f2f;
+      background: #352C25;
     }
 
     .mobile-menu {
@@ -495,7 +493,7 @@ import { ShelfLiveService } from '../../services/shelf-live.service';
     .mobile-link {
       padding: 11px 12px;
       border-radius: 8px;
-      color: #4d5d3a;
+      color: #5E6844;
       font-size: 15px;
       font-weight: 700;
       text-decoration: none;
@@ -503,7 +501,7 @@ import { ShelfLiveService } from '../../services/shelf-live.service';
 
     .mobile-link.active,
     .mobile-link:hover {
-      color: #5d8b1f;
+      color: #8A3F2A;
       background: rgba(128, 199, 64, 0.12);
     }
 
@@ -660,9 +658,6 @@ export class NavbarComponent implements OnDestroy {
     if (tipo.includes('estante') || tipo.includes('libro_retirado') || tipo.includes('deposito')) {
       return 'inventory_2';
     }
-    if (tipo.includes('trueque') || tipo.includes('propuesta') || tipo.includes('acept') || tipo.includes('pendiente')) {
-      return 'swap_horiz';
-    }
     if (tipo.includes('complet')) {
       return 'check_circle';
     }
@@ -682,9 +677,6 @@ export class NavbarComponent implements OnDestroy {
     }
     if (tipo.includes('rechaz') || tipo.includes('cancel') || tipo.includes('wrong')) {
       return 'alert';
-    }
-    if (tipo.includes('trueque') || tipo.includes('propuesta') || tipo.includes('acept') || tipo.includes('pendiente')) {
-      return 'trade';
     }
     return 'info';
   }

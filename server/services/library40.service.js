@@ -5,8 +5,8 @@ const PHYSICAL = new Set(['OPTIMO', 'DESGASTE', 'REPARACION']);
 
 /**
  * Devolución física: actualiza el slot del gemelo digital y cierra
- * la sesión de lectura activa. No lanza si no había sesión abierta,
- * para no interferir con un depósito de trueque.
+ * la sesión de lectura activa. Si el libro solo se está acomodando
+ * y no había préstamo abierto, la sesión queda igual.
  */
 async function onBookPlaced({ bookId, shelfSlotLocation, rfidOrSensorId }) {
   const fields = {

@@ -2,7 +2,7 @@
 const SHELF_LOCATION = 'Estante Páramo Libre';
 
 const SHELF_ACCEPT_MESSAGE =
-  'Trueque aceptado. Lleva tu libro al estante comunitario. Cuando alguien retire un libro, el sensor avisará en la app.';
+  'Deja y recoge los libros en el estante. Cuando alguien retira un libro, el sensor abre la sesión de lectura.';
 
 const SHELF_REMOVED_MESSAGE = (title) =>
   `El sensor detectó que "${title}" fue retirado del estante.`;
