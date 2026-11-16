@@ -7,6 +7,8 @@ import { PerfilService } from '../../services/perfil.service';
 import { DashboardActivity, DashboardBook, DashboardService } from '../../services/dashboard.service';
 import { BookService } from '../../services/book';
 import { Book, SHELF_LOCATION } from '../../models/book';
+import { ReaderCapital } from '../../models/library40.model';
+import { Library40Service } from '../../services/library40.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -18,6 +20,8 @@ import { Book, SHELF_LOCATION } from '../../models/book';
 export class DashboardComponent implements OnInit {
   userName = 'Lector';
   loading = true;
+  readerCode = '';
+  capital: ReaderCapital = { points: 0, level: 1, finished: 0, comprehension: null, points_to_next: 300 };
   readonly shelfLocation = SHELF_LOCATION;
 
   stats = [
@@ -40,7 +44,8 @@ export class DashboardComponent implements OnInit {
     private authService: AuthService,
     private perfilService: PerfilService,
     private dashboardService: DashboardService,
-    private bookService: BookService
+    private bookService: BookService,
+    private library40: Library40Service
   ) {}
 
   ngOnInit(): void {
@@ -48,6 +53,14 @@ export class DashboardComponent implements OnInit {
     if (user?.nombre) {
       this.userName = user.nombre.split(' ')[0];
     }
+    if (user?.id) {
+      this.readerCode = `PL-${user.id}`;
+    }
+    this.library40.getCapital().subscribe({
+      next: (capital) => {
+        this.capital = capital;
+      }
+    });
 
     this.perfilService.getPerfil().subscribe({
       next: (profile) => {

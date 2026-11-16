@@ -107,6 +107,30 @@ export function library40Seed(): Library40Overview {
         summary: 'Conectó una decisión del relato con algo que ya había visto en otra lectura. La síntesis es breve y propia.'
       }
     ],
+    operations: {
+      sla: {
+        status: 'OPERATIVO',
+        availability_target: 99.5,
+        availability_observed: 99.8,
+        open_seconds_target: 1.5,
+        open_tickets: 2,
+        proactive_alerts: 2
+      },
+      tickets: [
+        { id: 'INC-014', title: 'Rayuela lleva más de 14 días fuera del estante', severity: 'alta', state: 'abierto' },
+        { id: 'INC-011', title: 'El túnel está marcado en reparación', severity: 'media', state: 'en_curso' }
+      ],
+      weekly: [
+        { week: 'S1', points: 420 },
+        { week: 'S2', points: 510 },
+        { week: 'S3', points: 480 },
+        { week: 'S4', points: 640 },
+        { week: 'S5', points: 590 },
+        { week: 'S6', points: 720 }
+      ],
+      rfid_tags: 7,
+      readers_active: 4
+    },
     twin: [
       slot('Modulo-A-Nivel-1', present('Cien años de soledad', 'Gabriel García Márquez', 'Novela', 'OPTIMO', 'AVANZADO')),
       slot('Modulo-A-Nivel-2', present('El principito', 'Antoine de Saint-Exupéry', 'Novela', 'OPTIMO', 'BASICO')),

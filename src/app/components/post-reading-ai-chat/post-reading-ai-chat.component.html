@@ -2,7 +2,7 @@
   <p class="invite-kicker">{{ invite.title || 'Tu lectura' }}</p>
   <p class="invite-copy">¿Terminaste el libro? Conversa 2 minutos con tu compañero de lectura IA para desbloquear puntos y recomendaciones.</p>
   <div class="invite-actions">
-    <button type="button" class="primary" (click)="start(invite)">Conversar</button>
+    <button type="button" class="primary" (click)="start(invite)">Iniciar conversación socrática</button>
     <button type="button" class="quiet" (click)="later()">Ahora no</button>
   </div>
   <p class="invite-more" *ngIf="pending.length > 1">Hay {{ pending.length - 1 }} lectura más esperando.</p>

@@ -5,6 +5,7 @@ const library40Controller = require('../controllers/library40.controller');
 const router = express.Router();
 
 router.get('/overview', authenticate, authorize(['admin']), library40Controller.overview);
+router.get('/capital', authenticate, library40Controller.capital);
 router.get('/sessions/pending', authenticate, library40Controller.pending);
 
 module.exports = router;

@@ -12,6 +12,29 @@
     </a>
   </header>
 
+  <section class="reader-board" aria-label="Capital lector y estante">
+    <article class="capital-card">
+      <span class="section-kicker">Capital lector</span>
+      <h2>{{ capital.points | number }} puntos</h2>
+      <p>Nivel {{ capital.level }}. Faltan {{ capital.points_to_next }} puntos para el siguiente nivel.</p>
+      <ul>
+        <li><strong>{{ capital.finished }}</strong><span>Libros terminados</span></li>
+        <li><strong>{{ capital.comprehension === null ? '—' : capital.comprehension + '%' }}</strong><span>Comprensión promedio</span></li>
+      </ul>
+    </article>
+    <article class="shelf-pass">
+      <span class="section-kicker">Interacción con el estante</span>
+      <h2>Préstamo y devolución</h2>
+      <p>Acerca tu tarjeta NFC o muestra este código. El estante abre el compartimento, detecta el ejemplar y abre o cierra tu lectura.</p>
+      <strong class="reader-code">{{ readerCode || 'Inicia sesión' }}</strong>
+    </article>
+    <article class="companion-card">
+      <span class="section-kicker">Compañero de lectura IA</span>
+      <h2>¿Qué te pareció el final?</h2>
+      <p>Al devolver el libro, conversa 2 minutos. No es un examen: son preguntas cortas y al cierre sumas puntos de capital lector.</p>
+    </article>
+  </section>
+
   <section class="stats-grid" aria-label="Resumen">
     <a
       class="stat-card"

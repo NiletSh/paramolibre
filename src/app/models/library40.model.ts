@@ -51,6 +51,41 @@ export interface QualitativeNote {
   when: string;
 }
 
+export interface ServiceTicket {
+  id: string;
+  title: string;
+  severity: 'alta' | 'media' | 'baja';
+  state: 'abierto' | 'en_curso';
+}
+
+export interface WeeklyCapital {
+  week: string;
+  points: number;
+}
+
+export interface ServiceOperations {
+  sla: {
+    status: string;
+    availability_target: number;
+    availability_observed: number | null;
+    open_seconds_target: number;
+    open_tickets: number;
+    proactive_alerts: number;
+  };
+  tickets: ServiceTicket[];
+  weekly: WeeklyCapital[];
+  rfid_tags: number;
+  readers_active: number;
+}
+
+export interface ReaderCapital {
+  points: number;
+  level: number;
+  finished: number;
+  comprehension: number | null;
+  points_to_next: number;
+}
+
 export interface Library40Overview {
   source: 'seed' | 'database';
   warning?: string;
@@ -65,6 +100,7 @@ export interface Library40Overview {
     comprehension_by_category: CategoryScore[];
   };
   qualitative: QualitativeNote[];
+  operations: ServiceOperations;
   twin: TwinSlot[];
   unslotted?: TwinSlot[];
 }

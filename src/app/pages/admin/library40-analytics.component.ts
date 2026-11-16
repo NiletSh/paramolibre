@@ -91,4 +91,30 @@ export class Library40AnalyticsComponent implements OnInit {
     if (cell.presence === 'away') return cell.days_out ? `En préstamo · ${cell.days_out} días` : 'En préstamo';
     return 'En estante';
   }
+
+  slotTone(cell: TwinSlot): 'free' | 'available' | 'loan' | 'error' {
+    if (cell.presence === 'empty') return 'free';
+    if (cell.alert === 'overdue' || cell.book?.physical_condition === 'REPARACION') return 'error';
+    if (cell.presence === 'away') return 'loan';
+    return 'available';
+  }
+
+  toneLabel(cell: TwinSlot): string {
+    const labels = { free: 'Libre', available: 'Disponible', loan: 'Ocupado', error: 'Error' };
+    return labels[this.slotTone(cell)];
+  }
+
+  selected: TwinSlot | null = null;
+
+  selectSlot(cell: TwinSlot): void {
+    this.selected = this.selected?.slot === cell.slot ? null : cell;
+  }
+
+  weeklyLine(): string {
+    const rows = this.overview.operations?.weekly || [];
+    if (!rows.length) return '';
+    const max = Math.max(...rows.map((row) => row.points), 1);
+    const step = rows.length === 1 ? 0 : 260 / (rows.length - 1);
+    return rows.map((row, index) => `${20 + index * step},${110 - (row.points / max) * 86}`).join(' ');
+  }
 }

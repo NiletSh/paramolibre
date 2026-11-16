@@ -6,6 +6,7 @@ import {
   EvaluateRequest,
   EvaluateResponse,
   Library40Overview,
+  ReaderCapital,
   ReadingSession
 } from '../models/library40.model';
 
@@ -17,6 +18,10 @@ export class Library40Service {
 
   getOverview(): Observable<Library40Overview> {
     return this.http.get<Library40Overview>(`${environment.apiUrl}/library40/overview`);
+  }
+
+  getCapital(): Observable<ReaderCapital> {
+    return this.http.get<ReaderCapital>(`${environment.apiUrl}/library40/capital`);
   }
 
   getPendingSessions(): Observable<ReadingSession[]> {

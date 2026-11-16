@@ -1,9 +1,9 @@
 <section class="lib40">
   <header class="lib40-hero">
     <div>
-      <span class="eyebrow">Biblioteca inteligente 4.0</span>
-      <h1>Gemelo digital y comprensión</h1>
-      <p>El estante físico, su copia en la plataforma y cómo están leyendo quienes ya devolvieron un libro.</p>
+      <span class="eyebrow">Biblioteca inteligente 4.0 · Library-as-a-Service</span>
+      <h1>Tablero del servicio</h1>
+      <p>Salud del estante, copia digital del acervo y comprensión de la lectura, sin identificar a cada persona.</p>
     </div>
     <a routerLink="/admin" class="back-link">Volver a actividad</a>
   </header>
@@ -13,11 +13,54 @@
   </p>
   <p class="demo-chip live" *ngIf="!usingFallback && !loading">Cifras leídas de la base de este estante.</p>
 
+  <div class="ops-layout">
+    <aside class="panel ops-side">
+      <div class="panel-head">
+        <h2>Monitor de servicios</h2>
+        <p>La meta de disponibilidad es {{ overview.operations.sla.availability_target }}% al mes. La apertura local del estante se diseña en menos de {{ overview.operations.sla.open_seconds_target }} s.</p>
+      </div>
+      <p class="sla-status">{{ overview.operations.sla.status }}</p>
+      <ul class="sla-list">
+        <li><span>Meta de disponibilidad</span><strong>{{ overview.operations.sla.availability_target }}%</strong></li>
+        <li *ngIf="overview.operations.sla.availability_observed !== null"><span>Escenario de demostración</span><strong>{{ overview.operations.sla.availability_observed }}%</strong></li>
+        <li><span>Tickets abiertos</span><strong>{{ overview.operations.sla.open_tickets }}</strong></li>
+        <li><span>Alertas de telemetría</span><strong>{{ overview.operations.sla.proactive_alerts }}</strong></li>
+        <li><span>Lectores con libro fuera</span><strong>{{ overview.operations.readers_active }}</strong></li>
+        <li><span>Etiquetas RFID</span><strong>{{ overview.operations.rfid_tags }}</strong></li>
+      </ul>
+
+      <h3 class="subhead">Mesa de servicios</h3>
+      <article class="ticket" *ngFor="let ticket of overview.operations.tickets">
+        <header>
+          <strong>{{ ticket.id }}</strong>
+          <span>{{ ticket.severity }} · {{ ticket.state === 'abierto' ? 'Abierto' : 'En curso' }}</span>
+        </header>
+        <p>{{ ticket.title }}</p>
+      </article>
+      <p class="empty" *ngIf="overview.operations.tickets.length === 0">No hay tickets abiertos por atraso o reparación.</p>
+
+      <h3 class="subhead">Gestión del acervo</h3>
+      <nav class="ops-nav">
+        <a routerLink="/admin">Lectores activos</a>
+        <a routerLink="/admin/estante">Inventario RFID</a>
+        <a routerLink="/catalogo">Catálogo</a>
+        <a href="#analitica">Reportes pedagógicos</a>
+        <a routerLink="/admin/estante">Configuración del estante</a>
+      </nav>
+    </aside>
+
+    <div class="ops-main">
   <section class="panel">
     <div class="panel-head">
-      <h2>Monitor del gemelo digital</h2>
-      <p>Cada celda es un espacio del estante. El aviso rojo marca un libro fuera más de {{ overview.overdue_days }} días.</p>
+      <h2>Gemelo digital del acervo</h2>
+      <p>Cada celda es un espacio del estante. Oliva es un libro disponible, ámbar está en préstamo y terracota marca reparación o un atraso de más de {{ overview.overdue_days }} días.</p>
     </div>
+    <ul class="legend">
+      <li><i class="tone-available"></i> Disponible</li>
+      <li><i class="tone-loan"></i> Ocupado</li>
+      <li><i class="tone-error"></i> Error</li>
+      <li><i class="tone-free"></i> Libre</li>
+    </ul>
 
     <div class="modules">
       <section class="module" *ngFor="let moduleName of modules">
@@ -26,10 +69,12 @@
           <article
             class="slot"
             *ngFor="let cell of slotsFor(moduleName)"
-            [class.slot-empty]="cell.presence === 'empty'"
-            [class.slot-away]="cell.presence === 'away'"
-            [class.slot-alert]="cell.alert === 'overdue'"
-            [class.slot-repair]="cell.book?.physical_condition === 'REPARACION'">
+            [class.slot-free]="slotTone(cell) === 'free'"
+            [class.slot-available]="slotTone(cell) === 'available'"
+            [class.slot-loan]="slotTone(cell) === 'loan'"
+            [class.slot-error]="slotTone(cell) === 'error'"
+            [class.slot-selected]="selected?.slot === cell.slot"
+            (click)="selectSlot(cell)">
             <header>
               <span>{{ cell.slot }}</span>
               <strong [class.badge-alert]="cell.alert === 'overdue'">{{ presenceLabel(cell) }}</strong>
@@ -59,9 +104,17 @@
         <span>{{ cell.slot }} · {{ presenceLabel(cell) }}</span>
       </article>
     </div>
+
+    <article class="slot-info" *ngIf="selected">
+      <p class="eyebrow">Información del espacio</p>
+      <h3>{{ selected.slot }}</h3>
+      <p *ngIf="selected.book; else freeInfo">{{ selected.book.title }} · {{ selected.book.author }}</p>
+      <p *ngIf="selected.book">{{ toneLabel(selected) }} · {{ conditionLabel(selected.book.physical_condition) }} · {{ lexicalLabel(selected.book.lexical_complexity) }}</p>
+      <ng-template #freeInfo><p>Espacio libre, listo para el siguiente ejemplar.</p></ng-template>
+    </article>
   </section>
 
-  <section class="panel">
+  <section class="panel" id="analitica">
     <div class="panel-head">
       <h2>Analítica de comprensión lectora</h2>
       <p>Terminado es un libro devuelto. Abandonado es una sesión omitida o un préstamo abierto más de 21 días.</p>
@@ -91,7 +144,29 @@
     </div>
     <p class="split-caption"><i></i> Terminados <b></b> Abandonados</p>
 
-    <h3 class="subhead">Nivel promedio por categoría</h3>
+    <div class="chart-row">
+      <article>
+        <h3 class="subhead">Capital lector por semana</h3>
+        <svg class="line-chart" viewBox="0 0 300 130" role="img" aria-label="Puntos de capital lector por semana" *ngIf="overview.operations.weekly.length; else noWeekly">
+          <polyline [attr.points]="weeklyLine()"></polyline>
+        </svg>
+        <p class="week-labels" *ngIf="overview.operations.weekly.length">
+          <span *ngFor="let row of overview.operations.weekly">{{ row.week }}</span>
+        </p>
+        <ng-template #noWeekly><p class="empty">Todavía no hay puntos acumulados en las últimas semanas.</p></ng-template>
+      </article>
+      <article>
+        <h3 class="subhead">Terminados y abandonados</h3>
+        <div
+          class="donut"
+          [style.background]="'conic-gradient(#8A3F2A 0 ' + overview.kpis.finished_rate + '%, #d58a14 ' + overview.kpis.finished_rate + '% 100%)'">
+          <span>{{ overview.kpis.finished_rate }}%</span>
+        </div>
+        <p class="empty">{{ overview.kpis.finished_count }} terminados · {{ overview.kpis.abandoned_count }} abandonados</p>
+      </article>
+    </div>
+
+    <h3 class="subhead">Nivel de comprensión por categoría</h3>
     <ul class="bars" *ngIf="overview.kpis.comprehension_by_category.length; else noCategories">
       <li *ngFor="let row of overview.kpis.comprehension_by_category">
         <div>
@@ -133,4 +208,6 @@
       <p class="empty">Cuando alguien cierre la conversación con el compañero de lectura, el resumen aparecerá aquí, sin identificar al lector.</p>
     </ng-template>
   </section>
+    </div>
+  </div>
 </section>

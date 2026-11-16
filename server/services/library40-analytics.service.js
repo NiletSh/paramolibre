@@ -174,6 +174,89 @@ async function loadTwin() {
   return mapTwin(rows);
 }
 
+function ticketsFromTwin(twin) {
+  const tickets = [];
+  for (const cell of [...twin.twin, ...twin.unslotted]) {
+    if (!cell.book) continue;
+    if (cell.alert === 'overdue') {
+      tickets.push({
+        id: `INC-${cell.book.id || tickets.length + 1}`,
+        title: `${cell.book.title} lleva más de ${OVERDUE_DAYS} días fuera del estante`,
+        severity: 'alta',
+        state: 'abierto'
+      });
+    } else if (cell.book.physical_condition === 'REPARACION') {
+      tickets.push({
+        id: `INC-${cell.book.id || tickets.length + 1}`,
+        title: `${cell.book.title} está marcado en reparación`,
+        severity: 'media',
+        state: 'en_curso'
+      });
+    }
+  }
+  return tickets.slice(0, 6);
+}
+
+async function loadOperations(twin, kpis) {
+  const tickets = ticketsFromTwin(twin);
+  let rfidTags = 0;
+  let weekly = [];
+  try {
+    const [rfid] = await db.query('SELECT COUNT(*) AS total FROM tarjetas_rfid');
+    rfidTags = Number(rfid[0]?.total || 0);
+    const [rows] = await db.query(`
+      SELECT YEARWEEK(COALESCE(returned_at, checked_out_at), 3) AS week_key,
+             COALESCE(SUM(earned_reader_points), 0) AS points
+      FROM reading_sessions
+      WHERE COALESCE(returned_at, checked_out_at) >= DATE_SUB(NOW(), INTERVAL 8 WEEK)
+      GROUP BY week_key
+      ORDER BY week_key
+    `);
+    weekly = rows.map((row, index) => ({
+      week: `S${index + 1}`,
+      points: Number(row.points || 0)
+    }));
+  } catch (error) {
+    weekly = [];
+  }
+
+  return {
+    sla: {
+      status: 'OPERATIVO',
+      availability_target: 99.5,
+      availability_observed: null,
+      open_seconds_target: 1.5,
+      open_tickets: tickets.filter((ticket) => ticket.state === 'abierto').length,
+      proactive_alerts: tickets.length
+    },
+    tickets,
+    weekly,
+    rfid_tags: rfidTags,
+    readers_active: Number(kpis.in_progress_count || 0)
+  };
+}
+
+async function buildReaderCapital(userId) {
+  const [rows] = await db.query(`
+    SELECT
+      COALESCE(SUM(earned_reader_points), 0) AS points,
+      SUM(CASE WHEN comprehension_status IN ('VALIDADO', 'PENDIENTE_VALIDACION') THEN 1 ELSE 0 END) AS finished,
+      ROUND(AVG(CASE WHEN comprehension_status = 'VALIDADO' THEN comprehension_score END)) AS comprehension
+    FROM reading_sessions
+    WHERE user_id = ?
+  `, [userId]);
+  const row = rows[0] || {};
+  const points = Number(row.points || 0);
+  const remainder = points % 300;
+  return {
+    points,
+    level: Math.min(10, Math.floor(points / 300) + 1),
+    finished: Number(row.finished || 0),
+    comprehension: row.comprehension == null ? null : Number(row.comprehension),
+    points_to_next: remainder === 0 && points > 0 ? 300 : 300 - remainder
+  };
+}
+
 async function buildOverview() {
   if (!(await hasLiveData())) {
     return seedOverview();
@@ -188,9 +271,10 @@ async function buildOverview() {
       comprehension_by_category: await loadCategories()
     },
     qualitative: await loadQualitative(),
+    operations: await loadOperations(twin, kpis),
     twin: twin.twin,
     unslotted: twin.unslotted
   };
 }
 
-module.exports = { buildOverview, OVERDUE_DAYS };
+module.exports = { buildOverview, buildReaderCapital, OVERDUE_DAYS };
