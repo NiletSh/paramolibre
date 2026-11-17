@@ -2,8 +2,8 @@
   
   <header class="catalog-header">
     <div class="header-content">
-      <h1>Catálogo de libros</h1>
-      <p>{{ totalResults }} libros en la biblioteca</p>
+      <h1>Biblioteca de la escuela</h1>
+      <p>{{ totalResults }} libros con su lugar en el estante. El trueque vive aparte, en su módulo.</p>
     </div>
     <a class="btn-publish-catalog" routerLink="/publicar-libro" *ngIf="isLoggedIn">
       <span class="material-icons">add</span>
@@ -91,7 +91,7 @@
         <div class="book-meta">
           <span class="meta-item">
             <span class="material-icons">inventory_2</span>
-            {{ shelfLocation }}
+            {{ book.location }}
           </span>
           <span class="meta-item">
             <span class="material-icons">person</span>

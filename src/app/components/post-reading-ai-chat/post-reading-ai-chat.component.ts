@@ -60,7 +60,7 @@ export class PostReadingAIChatComponent implements OnInit, OnDestroy {
   }
 
   get questionLabel(): string {
-    return `Pregunta ${Math.min(this.userTurns + 1, 3)} de 3`;
+    return `Pregunta ${Math.min(this.userTurns + 1, 2)} de 2`;
   }
 
   start(session: ReadingSession): void {
@@ -93,7 +93,7 @@ export class PostReadingAIChatComponent implements OnInit, OnDestroy {
 
   send(): void {
     const text = this.draft.trim();
-    if (!text || this.sending || this.result || this.userTurns >= 3) return;
+    if (!text || this.sending || this.result || this.userTurns >= 2) return;
     this.draft = '';
     this.messages = [...this.messages, { role: 'user', content: text }];
     this.ask();

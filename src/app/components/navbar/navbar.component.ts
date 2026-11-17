@@ -26,12 +26,14 @@ import { ShelfLiveService } from '../../services/shelf-live.service';
           </ng-container>
           <ng-container *ngIf="isLoggedIn && !isAdmin">
             <a class="nav-link" routerLink="/catalogo" routerLinkActive="active">Cat&aacute;logo</a>
+            <a class="nav-link" routerLink="/trueque" routerLinkActive="active">Trueque</a>
             <a class="nav-link" routerLink="/publicar-libro" routerLinkActive="active">Publicar libro</a>
             <a class="nav-link" routerLink="/dashboard" routerLinkActive="active">Mi espacio</a>
             <a class="nav-link" routerLink="/perfil" routerLinkActive="active">Perfil</a>
           </ng-container>
           <ng-container *ngIf="!isLoggedIn">
-
+            <a class="nav-link" routerLink="/catalogo" routerLinkActive="active">Cat&aacute;logo</a>
+            <a class="nav-link" routerLink="/trueque" routerLinkActive="active">Trueque</a>
             <a class="nav-link" routerLink="/auth/login" routerLinkActive="active">Iniciar sesi&oacute;n</a>
             <a class="nav-link nav-link-register" routerLink="/auth/registro" routerLinkActive="active">Registrarse</a>
           </ng-container>
@@ -103,11 +105,14 @@ import { ShelfLiveService } from '../../services/shelf-live.service';
         </ng-container>
         <ng-container *ngIf="isLoggedIn && !isAdmin">
           <a class="mobile-link" routerLink="/catalogo" (click)="closeMenu()" routerLinkActive="active">Cat&aacute;logo</a>
+          <a class="mobile-link" routerLink="/trueque" (click)="closeMenu()" routerLinkActive="active">Trueque</a>
           <a class="mobile-link" routerLink="/publicar-libro" (click)="closeMenu()" routerLinkActive="active">Publicar libro</a>
           <a class="mobile-link" routerLink="/dashboard" (click)="closeMenu()" routerLinkActive="active">Mi espacio</a>
           <a class="mobile-link" routerLink="/perfil" (click)="closeMenu()" routerLinkActive="active">Perfil</a>
         </ng-container>
         <ng-container *ngIf="!isLoggedIn">
+          <a class="mobile-link" routerLink="/catalogo" (click)="closeMenu()" routerLinkActive="active">Cat&aacute;logo</a>
+          <a class="mobile-link" routerLink="/trueque" (click)="closeMenu()" routerLinkActive="active">Trueque</a>
           <a class="mobile-link" routerLink="/auth/login" (click)="closeMenu()" routerLinkActive="active">Iniciar sesi&oacute;n</a>
           <a class="mobile-link mobile-register" routerLink="/auth/registro" (click)="closeMenu()" routerLinkActive="active">Registrarse</a>
         </ng-container>

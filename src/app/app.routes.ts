@@ -26,6 +26,11 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/catalog/catalog.component').then(m => m.CatalogComponent)
       },
       {
+        path: 'trueque',
+        loadComponent: () => import('./pages/trueque/trueque.component').then(m => m.TruequeComponent),
+        title: 'Trueque - Páramo Libre'
+      },
+      {
         path: 'libro/:id',
         loadComponent: () => import('./pages/book-detail/book-detail.component').then(m => m.BookDetailComponent)
       },

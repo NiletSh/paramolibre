@@ -76,8 +76,28 @@
               <span class="material-icons">place</span>
             </span>
             <div>
-              <span class="detail-label">Estante</span>
-              <span class="detail-value">{{ shelfLocation }}</span>
+              <span class="detail-label">Dónde está</span>
+              <span class="detail-value">{{ book.slot }}</span>
+            </div>
+          </div>
+
+          <div class="detail-item">
+            <span class="detail-icon">
+              <span class="material-icons">sensors</span>
+            </span>
+            <div>
+              <span class="detail-label">Etiqueta RFID</span>
+              <span class="detail-value">{{ book.rfid }}</span>
+            </div>
+          </div>
+
+          <div class="detail-item">
+            <span class="detail-icon">
+              <span class="material-icons">menu_book</span>
+            </span>
+            <div>
+              <span class="detail-label">Nivel de lectura</span>
+              <span class="detail-value">{{ book.lexical }}</span>
             </div>
           </div>
           
@@ -93,12 +113,23 @@
         </div>
       </div>
 
-      <div class="trade-guide">
+      <div class="trade-guide" *ngIf="!loanMode">
         <div class="guide-item">
-          <span class="material-icons">inventory_2</span>
+          <span class="material-icons">swap_horiz</span>
           <div>
-            <strong>Estante comunitario</strong>
-            <p>{{ shelfInstructions }}</p>
+            <strong>¿Cómo lo quieres?</strong>
+            <p>El préstamo dura {{ loanDays }} días. Físico: lo recoges en {{ book.slot }} y, al devolverlo, el RFID y el peso registran la salida y la entrada. Virtual: lees la copia digital y el ejemplar se queda en el estante.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="trade-guide" *ngIf="loanMode">
+        <div class="guide-item">
+          <span class="material-icons">event_available</span>
+          <div>
+            <strong>{{ loanMode === 'fisico' ? 'Préstamo físico' : 'Préstamo virtual' }} hasta el {{ loanUntil() }}</strong>
+            <p *ngIf="loanMode === 'fisico'">Pasa a {{ book.slot }}. Al dejar el libro, la etiqueta {{ book.rfid }} y el peso confirman la devolución y se abre la conversación de cierre.</p>
+            <p *ngIf="loanMode === 'virtual'">La copia digital es tuya estos días. El libro físico sigue en {{ book.slot }} para quien lo busque en el estante.</p>
           </div>
         </div>
       </div>
@@ -120,6 +151,15 @@
         <button class="btn-exchange-main" *ngIf="canEditBook" [routerLink]="['/libro', book.id, 'editar']">
           <span class="material-icons">edit</span>
           Editar libro
+        </button>
+
+        <button class="btn-exchange-main" *ngIf="book.status === 'available' && !loanMode" (click)="chooseLoan('fisico')">
+          <span class="material-icons">inventory_2</span>
+          Lo quiero físico
+        </button>
+        <button class="btn-back-secondary" *ngIf="book.status === 'available' && !loanMode" (click)="chooseLoan('virtual')">
+          <span class="material-icons">devices</span>
+          Lo quiero virtual
         </button>
 
         <button class="btn-exchange-main disabled" *ngIf="book.status !== 'available'" disabled>

@@ -44,13 +44,12 @@ function offlineReply({ system, messages }) {
   const title = titleMatch ? titleMatch[1] : 'este libro';
   const userTurns = messages.filter((message) => message.role === 'user').length;
   const questions = [
-    `¿Qué escena o idea de "${title}" se te quedó dando vueltas después de cerrarlo?`,
-    'Si se lo contaras a alguien en dos frases, ¿qué parte no querrías dejar fuera?',
-    '¿Hay algo que hoy mirarías distinto a como lo mirabas cuando lo empezaste?'
+    `¿Qué idea o momento de "${title}" te marcó más y por qué?`,
+    'Explícale el conflicto central a alguien que no lo leyó.'
   ];
 
-  if (userTurns < 3) {
-    return { provider: 'offline', text: questions[userTurns] || questions[2] };
+  if (userTurns < 2) {
+    return { provider: 'offline', text: questions[userTurns] || questions[1] };
   }
 
   const answers = messages.filter((message) => message.role === 'user').map((message) => message.content);

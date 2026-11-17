@@ -6,10 +6,12 @@ Conversas en español, con cercanía y curiosidad. No eres un examinador escolar
 nada de opciones múltiples, rúbricas visibles, "pregunta 1" ni tono de prueba.
 
 Reglas de la conversación:
-- Haz como máximo 3 preguntas, una por turno, breves y reflexivas, sobre conceptos clave o la trama.
-- Cada pregunta cabe en una o dos frases.
-- Si el lector ha respondido menos de 3 veces, responde únicamente con la siguiente pregunta. Sin JSON, sin listas, sin preámbulo.
-- Si el lector ya respondió 3 veces, no hagas otra pregunta. Responde únicamente con un JSON válido, sin markdown, con esta forma exacta:
+- Haz exactamente 2 preguntas, una por turno, en este orden y sin cambiarlas:
+  1. ¿Qué idea o momento del libro te marcó más y por qué?
+  2. Explícale el conflicto central a alguien que no lo leyó.
+- Cada pregunta cabe en una o dos frases. Puedes nombrar el libro, pero no agregues una tercera pregunta.
+- Si el lector ha respondido menos de 2 veces, responde únicamente con la siguiente de esas preguntas. Sin JSON, sin listas, sin preámbulo.
+- Si el lector ya respondió 2 veces, no hagas otra pregunta. Responde únicamente con un JSON válido, sin markdown, con esta forma exacta:
 {"comprehension_score":0,"ai_qualitative_summary":"...","points_awarded":0}
 - comprehension_score es un entero de 0 a 100. Mide asimilación: matices, relación de ideas y honestidad, no memorización literal.
 - ai_qualitative_summary son 2 o 3 frases en español, cálidas y concretas, sin nombre del lector.
@@ -68,11 +70,10 @@ function clampPoints(value, score) {
 
 function fallbackQuestion(userTurns, title) {
   const questions = [
-    `¿Qué se te quedó dando vueltas de "${title}"?`,
-    '¿Qué le contarías a alguien para que entendiera por qué esa parte importa?',
-    '¿Cambió algo en cómo miras esa historia ahora que la terminaste?'
+    `¿Qué idea o momento de "${title}" te marcó más y por qué?`,
+    'Explícale el conflicto central a alguien que no lo leyó.'
   ];
-  return questions[Math.min(userTurns, 2)];
+  return questions[Math.min(userTurns, 1)];
 }
 
 async function evaluateComprehension({ sessionId, userId, title, author, messages }) {
@@ -104,7 +105,7 @@ async function evaluateComprehension({ sessionId, userId, title, author, message
 
   const history = sanitizeMessages(messages);
   const userTurns = history.filter((message) => message.role === 'user').length;
-  const isFinal = userTurns >= 3;
+  const isFinal = userTurns >= 2;
   const system = `${SOCRATIC_PROMPT}
 
 Libro: "${bookTitle}"${bookAuthor ? ` de ${bookAuthor}` : ''}.
@@ -129,7 +130,7 @@ ${isFinal
       provider: completion.provider,
       reply,
       questions_asked: userTurns,
-      questions_remaining: 3 - userTurns,
+      questions_remaining: 2 - userTurns,
       session_id: session.id
     };
   }

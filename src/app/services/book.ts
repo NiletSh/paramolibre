@@ -41,6 +41,10 @@ interface ApiBook {
   created_at?: string;
   rfidUid?: string | null;
   rfid_uid?: string | null;
+  shelf_slot_location?: string | null;
+  rfid_or_sensor_id?: string | null;
+  lexical_complexity?: Book['lexical_complexity'];
+  physical_condition?: Book['physical_condition'];
 }
 
 @Injectable({
@@ -141,7 +145,11 @@ export class BookService {
       ownerName: book.ownerName || book.owner_name,
       status: book.status || 'available',
       createdAt: book.createdAt || book.created_at,
-      rfidUid: book.rfidUid || book.rfid_uid || null
+      rfidUid: book.rfidUid || book.rfid_uid || book.rfid_or_sensor_id || null,
+      rfid_or_sensor_id: book.rfid_or_sensor_id || book.rfidUid || book.rfid_uid || null,
+      shelf_slot_location: book.shelf_slot_location || null,
+      lexical_complexity: book.lexical_complexity || null,
+      physical_condition: book.physical_condition || null
     };
   }
 

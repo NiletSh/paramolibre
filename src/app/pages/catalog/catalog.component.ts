@@ -5,7 +5,8 @@ import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { BookService } from '../../services/book';
 import { AuthService } from '../../core/services/auth.service';
-import { Book, BOOK_CATEGORIES, BOOK_CONDITIONS, SHELF_LOCATION } from '../../models/book';
+import { Book, BOOK_CATEGORIES, BOOK_CONDITIONS } from '../../models/book';
+import { SCHOOL_BOOKS, slotLabel } from '../../data/school-collection';
 
 interface CatalogBook {
   id: string | number;
@@ -40,7 +41,6 @@ export class CatalogComponent implements OnInit {
 
   categories = ['Todos', ...BOOK_CATEGORIES];
   conditions = [{ value: 'Todos', label: 'Todos los estados' }, ...BOOK_CONDITIONS];
-  readonly shelfLocation = SHELF_LOCATION;
 
   conditionLabels: Record<string, string> = {
     new: 'Nuevo',
@@ -130,11 +130,12 @@ export class CatalogComponent implements OnInit {
     this.loading = true;
     this.bookService.getBooks({ limit: 100 }).subscribe({
       next: (books) => {
-        this.allBooks = books.map((book, index) => this.toCatalogBook(book, index));
+        const extras = books.filter((book) => !SCHOOL_BOOKS.some((school) => school.title === book.title));
+        this.allBooks = [...SCHOOL_BOOKS, ...extras].map((book, index) => this.toCatalogBook(book, index));
         this.loading = false;
       },
       error: () => {
-        this.allBooks = [];
+        this.allBooks = SCHOOL_BOOKS.map((book, index) => this.toCatalogBook(book, index));
         this.loading = false;
       }
     });
@@ -174,7 +175,7 @@ export class CatalogComponent implements OnInit {
       author: book.author,
       category: book.category,
       condition: book.condition,
-      location: SHELF_LOCATION,
+      location: book.shelf_slot_location ? slotLabel(book.shelf_slot_location) : (book.location || 'Ubicación por asignar'),
       owner: book.ownerName || 'Usuario',
       ownerId: book.ownerId,
       status: book.status || 'available',

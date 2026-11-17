@@ -6,7 +6,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { BookService } from '../../services/book';
 import { AuthService } from '../../core/services/auth.service';
-import { Book, SHELF_INSTRUCTIONS, SHELF_LOCATION } from '../../models/book';
+import { Book } from '../../models/book';
+import { LOAN_DAYS, findSchoolBook, slotLabel } from '../../data/school-collection';
 
 interface BookDetail {
   id: string | number;
@@ -17,6 +18,9 @@ interface BookDetail {
   category: string;
   condition: 'new' | 'like_new' | 'good' | 'fair';
   location: string;
+  slot: string;
+  rfid: string;
+  lexical: string;
   owner: string;
   ownerAvatar?: string;
   status: 'available' | 'exchanged' | 'reserved';
@@ -33,10 +37,10 @@ interface BookDetail {
   styleUrl: './book-detail.component.scss'
 })
 export class BookDetailComponent implements OnInit {
-  readonly shelfLocation = SHELF_LOCATION;
-  readonly shelfInstructions = SHELF_INSTRUCTIONS;
+  readonly loanDays = LOAN_DAYS;
 
   book: BookDetail | null = null;
+  loanMode: 'fisico' | 'virtual' | null = null;
   notFound = false;
   isLoggedIn = false;
   canEditBook = false;
@@ -98,6 +102,7 @@ export class BookDetailComponent implements OnInit {
         }
 
         this.book = this.toBookDetail(book);
+        this.loanMode = this.rememberedLoan(book.id);
         this.canEditBook = this.canEdit(this.book);
         const savedUid = book.rfidUid || this.rememberedCard(book.id);
         if (savedUid) {
@@ -108,7 +113,15 @@ export class BookDetailComponent implements OnInit {
         this.notFound = false;
       },
       error: () => {
-        this.notFound = true;
+        const school = findSchoolBook(idParam);
+        if (!school) {
+          this.notFound = true;
+          return;
+        }
+        this.book = this.toBookDetail(school);
+        this.loanMode = this.rememberedLoan(school.id);
+        this.canEditBook = false;
+        this.notFound = false;
       }
     });
   }
@@ -123,6 +136,37 @@ export class BookDetailComponent implements OnInit {
     this.router.navigate(['/catalogo']);
   }
 
+  chooseLoan(mode: 'fisico' | 'virtual'): void {
+    if (!this.book) return;
+    if (!this.isLoggedIn) {
+      this.router.navigate(['/auth/login'], {
+        queryParams: { returnUrl: `libro/${this.book.id}`, reason: 'Inicia sesión para pedir el libro.' }
+      });
+      return;
+    }
+    const until = new Date();
+    until.setDate(until.getDate() + this.loanDays);
+    const loan = { mode, until: until.toISOString(), slot: this.book.slot };
+    localStorage.setItem(this.loanKey(this.book.id), JSON.stringify(loan));
+    this.loanMode = mode;
+    const where = mode === 'fisico'
+      ? `Recógelo en ${this.book.slot}. Tienes ${this.loanDays} días. Al devolverlo, la etiqueta RFID y el peso registran la devolución.`
+      : `La copia digital queda contigo ${this.loanDays} días. El ejemplar físico sigue en ${this.book.slot}.`;
+    this.snackBar.open(where, 'Cerrar', { duration: 7000, panelClass: ['snackbar-success'] });
+  }
+
+  loanUntil(): string {
+    if (!this.book) return '';
+    const raw = localStorage.getItem(this.loanKey(this.book.id));
+    if (!raw) return '';
+    try {
+      const until = new Date(JSON.parse(raw).until);
+      return Number.isNaN(until.getTime()) ? '' : until.toLocaleDateString('es-MX', { day: 'numeric', month: 'long' });
+    } catch {
+      return '';
+    }
+  }
+
   private toBookDetail(book: Book): BookDetail {
     return {
       id: book.id || '',
@@ -132,7 +176,10 @@ export class BookDetailComponent implements OnInit {
       description: book.description,
       category: book.category,
       condition: book.condition,
-      location: SHELF_LOCATION,
+      location: book.shelf_slot_location ? slotLabel(book.shelf_slot_location) : (book.location || 'Ubicación por asignar'),
+      slot: book.shelf_slot_location ? slotLabel(book.shelf_slot_location) : (book.location || 'Ubicación por asignar'),
+      rfid: book.rfidUid || book.rfid_or_sensor_id || 'Sin etiqueta todavía',
+      lexical: book.lexical_complexity === 'BASICO' ? 'Básico' : book.lexical_complexity === 'AVANZADO' ? 'Avanzado' : book.lexical_complexity === 'INTERMEDIO' ? 'Intermedio' : 'Sin nivel',
       owner: book.ownerName || 'Usuario',
       status: book.status || 'available',
       publishedDate: this.formatDate(book.createdAt),
@@ -173,6 +220,22 @@ export class BookDetailComponent implements OnInit {
         });
       }
     });
+  }
+
+  private loanKey(id: string | number | undefined): string {
+    return `pl_loan_${id}`;
+  }
+
+  private rememberedLoan(id: string | number | undefined): 'fisico' | 'virtual' | null {
+    if (id == null || id === '') return null;
+    const raw = localStorage.getItem(this.loanKey(id));
+    if (!raw) return null;
+    try {
+      const mode = JSON.parse(raw).mode;
+      return mode === 'fisico' || mode === 'virtual' ? mode : null;
+    } catch {
+      return null;
+    }
   }
 
   private cardKey(id: string | number | undefined): string {
