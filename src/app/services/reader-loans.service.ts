@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Subject } from 'rxjs';
+import { AuthService } from '../core/services/auth.service';
 import { findSchoolBook } from '../data/school-collection';
 
 export interface ReaderLoan {
@@ -15,9 +16,13 @@ export interface ReaderLoan {
   providedIn: 'root'
 })
 export class ReaderLoansService {
-  private readonly loansSubject = new BehaviorSubject<ReaderLoan[]>(this.read());
+  private readonly loansSubject = new BehaviorSubject<ReaderLoan[]>([]);
   readonly loans$ = this.loansSubject.asObservable();
   readonly returnRequests = new Subject<ReaderLoan>();
+
+  constructor(private auth: AuthService) {
+    this.auth.currentUser$.subscribe(() => this.reload());
+  }
 
   list(): ReaderLoan[] {
     return this.loansSubject.value;
@@ -28,13 +33,17 @@ export class ReaderLoansService {
   }
 
   save(loan: ReaderLoan): void {
+    const key = this.storageKey();
+    if (!key) return;
     const next = this.list().filter((item) => item.bookId !== loan.bookId);
     next.unshift(loan);
-    this.write(next);
+    this.write(key, next);
   }
 
   remove(bookId: string): void {
-    this.write(this.list().filter((loan) => loan.bookId !== bookId));
+    const key = this.storageKey();
+    if (!key) return;
+    this.write(key, this.list().filter((loan) => loan.bookId !== bookId));
     localStorage.removeItem(`pl_loan_${bookId}`);
   }
 
@@ -42,15 +51,44 @@ export class ReaderLoansService {
     this.returnRequests.next(loan);
   }
 
+  private reload(): void {
+    this.loansSubject.next(this.read());
+  }
+
+  private storageKey(): string | null {
+    const id = this.auth.getCurrentUser()?.id;
+    return id ? `pl_loans_${id}` : null;
+  }
+
   private read(): ReaderLoan[] {
-    const stored = this.parse(localStorage.getItem('pl_loans'));
+    const key = this.storageKey();
+    if (!key) return [];
+    this.claimLegacy(key);
+    return this.parse(localStorage.getItem(key));
+  }
+
+  private claimLegacy(key: string): void {
+    const already = localStorage.getItem(key);
+    const stored = this.parse(already);
     const known = new Set(stored.map((loan) => loan.bookId));
+    const legacy = this.parse(localStorage.getItem('pl_loans'));
+    let changed = false;
+
+    for (const loan of legacy) {
+      if (known.has(loan.bookId)) continue;
+      stored.push(loan);
+      known.add(loan.bookId);
+      changed = true;
+    }
+
+    const stale: string[] = [];
     for (let index = 0; index < localStorage.length; index += 1) {
-      const key = localStorage.key(index);
-      if (!key || !key.startsWith('pl_loan_')) continue;
-      const bookId = key.slice('pl_loan_'.length);
+      const itemKey = localStorage.key(index);
+      if (!itemKey || !itemKey.startsWith('pl_loan_') || itemKey.startsWith('pl_loans')) continue;
+      stale.push(itemKey);
+      const bookId = itemKey.slice('pl_loan_'.length);
       if (known.has(bookId)) continue;
-      const old = this.parseOne(localStorage.getItem(key));
+      const old = this.parseOne(localStorage.getItem(itemKey));
       const school = findSchoolBook(bookId);
       stored.push({
         bookId,
@@ -60,12 +98,17 @@ export class ReaderLoansService {
         mode: old.mode === 'virtual' ? 'virtual' : 'fisico',
         until: old.until || ''
       });
+      known.add(bookId);
+      changed = true;
     }
-    return stored;
+
+    if (changed) localStorage.setItem(key, JSON.stringify(stored));
+    localStorage.removeItem('pl_loans');
+    stale.forEach((itemKey) => localStorage.removeItem(itemKey));
   }
 
-  private write(loans: ReaderLoan[]): void {
-    localStorage.setItem('pl_loans', JSON.stringify(loans));
+  private write(key: string, loans: ReaderLoan[]): void {
+    localStorage.setItem(key, JSON.stringify(loans));
     this.loansSubject.next(loans);
   }
 
