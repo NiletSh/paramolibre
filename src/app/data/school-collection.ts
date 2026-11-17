@@ -1,6 +1,6 @@
 import { Book } from '../models/book';
 
-export const LOAN_DAYS = 14;
+export const LOAN_DAYS = 7;
 
 /** Acervo de la escuela, con el espacio exacto del estante. Sirve mientras la base aún no tiene esos ejemplares. */
 export const SCHOOL_BOOKS: Book[] = [

@@ -6,10 +6,6 @@
       <p>Aquí ves tus libros publicados y las lecturas que el estante ya registró.</p>
     </div>
 
-    <a class="btn-new-book" routerLink="/publicar-libro">
-      <span class="material-icons">add</span>
-      Publicar libro
-    </a>
   </header>
 
   <section class="reader-board" aria-label="Capital lector y estante">
@@ -29,9 +25,18 @@
       <strong class="reader-code">{{ readerCode || 'Inicia sesión' }}</strong>
     </article>
     <article class="companion-card">
-      <span class="section-kicker">Compañero de lectura IA</span>
-      <h2>¿Qué te pareció el final?</h2>
-      <p>Al devolver el libro, conversa 2 minutos. No es un examen: son preguntas cortas y al cierre sumas puntos de capital lector.</p>
+      <span class="section-kicker">En préstamo</span>
+      <h2>{{ loans.length ? loans.length + (loans.length === 1 ? ' libro' : ' libros') : 'Nada pendiente' }}</h2>
+      <p *ngIf="!loans.length">Cuando pidas un libro físico o virtual, aparece aquí.</p>
+      <ul class="loan-list" *ngIf="loans.length">
+        <li *ngFor="let loan of loans">
+          <div>
+            <strong>{{ loan.title }}</strong>
+            <span>{{ loan.mode === 'fisico' ? 'Físico' : 'Virtual' }} · hasta el {{ loanDate(loan.until) }}</span>
+          </div>
+          <button type="button" (click)="returnLoan(loan)">Devolver</button>
+        </li>
+      </ul>
     </article>
   </section>
 

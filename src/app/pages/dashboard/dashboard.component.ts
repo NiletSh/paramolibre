@@ -1,4 +1,5 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
@@ -9,6 +10,7 @@ import { BookService } from '../../services/book';
 import { Book, SHELF_LOCATION } from '../../models/book';
 import { ReaderCapital } from '../../models/library40.model';
 import { Library40Service } from '../../services/library40.service';
+import { ReaderLoan, ReaderLoansService } from '../../services/reader-loans.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -17,7 +19,7 @@ import { Library40Service } from '../../services/library40.service';
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss'
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, OnDestroy {
   userName = 'Lector';
   loading = true;
   readerCode = '';
@@ -32,6 +34,8 @@ export class DashboardComponent implements OnInit {
 
   recentBooks: Array<DashboardBook & { cover: string }> = [];
   activities: DashboardActivity[] = [];
+  loans: ReaderLoan[] = [];
+  private loansSub?: Subscription;
 
   quickActions = [
     { label: 'Publicar libro', description: 'Agrega un titulo disponible', icon: 'add_circle', link: '/publicar-libro', tone: 'publish' },
@@ -45,10 +49,19 @@ export class DashboardComponent implements OnInit {
     private perfilService: PerfilService,
     private dashboardService: DashboardService,
     private bookService: BookService,
-    private library40: Library40Service
+    private library40: Library40Service,
+    private readerLoans: ReaderLoansService
   ) {}
 
+  ngOnDestroy(): void {
+    this.loansSub?.unsubscribe();
+  }
+
   ngOnInit(): void {
+    this.loansSub = this.readerLoans.loans$.subscribe((loans) => {
+      this.loans = loans;
+      this.syncLoanStat();
+    });
     const user = this.authService.getCurrentUser();
     if (user?.nombre) {
       this.userName = user.nombre.split(' ')[0];
@@ -77,6 +90,16 @@ export class DashboardComponent implements OnInit {
     this.loadDashboard();
   }
 
+  returnLoan(loan: ReaderLoan): void {
+    this.readerLoans.askReturn(loan);
+  }
+
+  loanDate(value: string): string {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toLocaleDateString('es-MX', { day: 'numeric', month: 'long' });
+  }
+
   getStatusLabel(status: string): string {
     const labels: Record<string, string> = {
       available: 'Disponible',
@@ -86,13 +109,20 @@ export class DashboardComponent implements OnInit {
     return labels[status] || status;
   }
 
+  private syncLoanStat(): void {
+    const loaned = this.stats.find((stat) => stat.label === 'En préstamo');
+    if (loaned && loaned.value < this.loans.length) {
+      loaned.value = this.loans.length;
+    }
+  }
+
   private loadDashboard(): void {
     this.loading = true;
     this.dashboardService.getDashboard().subscribe({
       next: (data) => {
         this.stats = [
           { ...this.stats[0], value: data.stats.librosPublicados },
-          { ...this.stats[1], value: data.stats.enPrestamo },
+          { ...this.stats[1], value: Math.max(data.stats.enPrestamo, this.loans.length) },
           { ...this.stats[2], value: data.stats.devueltos }
         ];
         this.activities = data.activities;

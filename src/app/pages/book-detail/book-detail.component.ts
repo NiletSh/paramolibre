@@ -1,4 +1,5 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -8,6 +9,7 @@ import { BookService } from '../../services/book';
 import { AuthService } from '../../core/services/auth.service';
 import { Book } from '../../models/book';
 import { LOAN_DAYS, findSchoolBook, slotLabel } from '../../data/school-collection';
+import { ReaderLoansService } from '../../services/reader-loans.service';
 
 interface BookDetail {
   id: string | number;
@@ -36,18 +38,20 @@ interface BookDetail {
   templateUrl: './book-detail.component.html',
   styleUrl: './book-detail.component.scss'
 })
-export class BookDetailComponent implements OnInit {
+export class BookDetailComponent implements OnInit, OnDestroy {
   readonly loanDays = LOAN_DAYS;
 
   book: BookDetail | null = null;
   loanMode: 'fisico' | 'virtual' | null = null;
   notFound = false;
   isLoggedIn = false;
+  isAdmin = false;
   canEditBook = false;
   cardUid = '';
   linkedUid = '';
   cardLinked = false;
   savingCard = false;
+  private loansSub?: Subscription;
 
   conditionLabels: Record<string, string> = {
     new: 'Nuevo',
@@ -80,12 +84,22 @@ export class BookDetailComponent implements OnInit {
     private router: Router,
     private bookService: BookService,
     private authService: AuthService,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private loans: ReaderLoansService
   ) {}
 
+  ngOnDestroy(): void {
+    this.loansSub?.unsubscribe();
+  }
+
   ngOnInit(): void {
+    this.loansSub = this.loans.loans$.subscribe(() => {
+      if (!this.book) return;
+      this.loanMode = this.loans.find(this.book.id)?.mode || null;
+    });
     this.authService.isAuthenticated$.subscribe((status) => {
       this.isLoggedIn = status;
+      this.isAdmin = this.authService.getCurrentUser()?.rol === 'admin';
     });
 
     const idParam = this.route.snapshot.paramMap.get('id');
@@ -102,7 +116,7 @@ export class BookDetailComponent implements OnInit {
         }
 
         this.book = this.toBookDetail(book);
-        this.loanMode = this.rememberedLoan(book.id);
+        this.loanMode = this.loans.find(book.id ?? '')?.mode || null;
         this.canEditBook = this.canEdit(this.book);
         const savedUid = book.rfidUid || this.rememberedCard(book.id);
         if (savedUid) {
@@ -119,7 +133,7 @@ export class BookDetailComponent implements OnInit {
           return;
         }
         this.book = this.toBookDetail(school);
-        this.loanMode = this.rememberedLoan(school.id);
+        this.loanMode = this.loans.find(school.id ?? '')?.mode || null;
         this.canEditBook = false;
         this.notFound = false;
       }
@@ -146,25 +160,34 @@ export class BookDetailComponent implements OnInit {
     }
     const until = new Date();
     until.setDate(until.getDate() + this.loanDays);
-    const loan = { mode, until: until.toISOString(), slot: this.book.slot };
-    localStorage.setItem(this.loanKey(this.book.id), JSON.stringify(loan));
+    this.loans.save({
+      bookId: String(this.book.id),
+      title: this.book.title,
+      author: this.book.author,
+      slot: this.book.slot,
+      mode,
+      until: until.toISOString()
+    });
     this.loanMode = mode;
     const where = mode === 'fisico'
-      ? `Recógelo en ${this.book.slot}. Tienes ${this.loanDays} días. Al devolverlo, la etiqueta RFID y el peso registran la devolución.`
-      : `La copia digital queda contigo ${this.loanDays} días. El ejemplar físico sigue en ${this.book.slot}.`;
+      ? `Está disponible. Puedes recogerlo hoy en ${this.book.slot}. El préstamo es de ${this.loanDays} días y puedes devolverlo antes.`
+      : `La copia digital queda contigo ${this.loanDays} días. Puedes devolverla antes. El ejemplar físico sigue en ${this.book.slot}.`;
     this.snackBar.open(where, 'Cerrar', { duration: 7000, panelClass: ['snackbar-success'] });
+  }
+
+  returnLoan(): void {
+    if (!this.book) return;
+    const loan = this.loans.find(this.book.id);
+    if (!loan) return;
+    this.loans.askReturn(loan);
   }
 
   loanUntil(): string {
     if (!this.book) return '';
-    const raw = localStorage.getItem(this.loanKey(this.book.id));
-    if (!raw) return '';
-    try {
-      const until = new Date(JSON.parse(raw).until);
-      return Number.isNaN(until.getTime()) ? '' : until.toLocaleDateString('es-MX', { day: 'numeric', month: 'long' });
-    } catch {
-      return '';
-    }
+    const until = this.loans.find(this.book.id)?.until;
+    if (!until) return '';
+    const date = new Date(until);
+    return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString('es-MX', { day: 'numeric', month: 'long' });
   }
 
   private toBookDetail(book: Book): BookDetail {
@@ -220,22 +243,6 @@ export class BookDetailComponent implements OnInit {
         });
       }
     });
-  }
-
-  private loanKey(id: string | number | undefined): string {
-    return `pl_loan_${id}`;
-  }
-
-  private rememberedLoan(id: string | number | undefined): 'fisico' | 'virtual' | null {
-    if (id == null || id === '') return null;
-    const raw = localStorage.getItem(this.loanKey(id));
-    if (!raw) return null;
-    try {
-      const mode = JSON.parse(raw).mode;
-      return mode === 'fisico' || mode === 'virtual' ? mode : null;
-    } catch {
-      return null;
-    }
   }
 
   private cardKey(id: string | number | undefined): string {
