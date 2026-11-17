@@ -27,8 +27,8 @@ export const routes: Routes = [
       },
       {
         path: 'trueque',
-        loadComponent: () => import('./pages/trueque/trueque.component').then(m => m.TruequeComponent),
-        title: 'Trueque - Páramo Libre'
+        redirectTo: 'catalogo',
+        pathMatch: 'full'
       },
       {
         path: 'libro/:id',
